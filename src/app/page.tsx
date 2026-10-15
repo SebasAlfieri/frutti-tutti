@@ -1,69 +1,194 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { User } from "firebase/auth";
+import { ensureSignedIn } from "@/lib/auth";
+import { createRoom, getRoomIdByCode } from "@/lib/repositories/room";
+import { ROOM_CODE_LENGTH } from "@/lib/constants";
+
+const PLAYER_NAME_KEY = "tuti-player-name";
+
+const AUTH_ERROR_MESSAGE =
+  "No se pudo iniciar la sesión. Verificá que la autenticación anónima esté habilitada en Firebase.";
 
 export default function Home() {
+  const router = useRouter();
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [roomCode, setRoomCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Restore the last used name without a controlled input, to avoid a
+  // hydration mismatch on a statically prerendered page.
+  useEffect(() => {
+    const savedName = localStorage.getItem(PLAYER_NAME_KEY);
+    if (savedName && nameRef.current) {
+      nameRef.current.value = savedName;
+    }
+  }, []);
+
+  const getName = (): string => (nameRef.current?.value ?? "").trim();
+
+  const startSession = async (): Promise<User | null> => {
+    try {
+      return await ensureSignedIn();
+    } catch {
+      setError(AUTH_ERROR_MESSAGE);
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const handleCreate = async () => {
+    const name = getName();
+    if (!name) {
+      setError("Ingresá tu nombre");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const user = await startSession();
+    if (!user) return;
+
+    try {
+      localStorage.setItem(PLAYER_NAME_KEY, name);
+      const { roomId } = await createRoom(user.uid, name);
+      router.push(`/room/${roomId}`);
+    } catch {
+      setError("No se pudo crear la sala. Revisá tu conexión e intentá de nuevo.");
+      setLoading(false);
+    }
+  };
+
+  const handleJoin = async () => {
+    const name = getName();
+    if (!name) {
+      setError("Ingresá tu nombre");
+      return;
+    }
+    if (roomCode.trim().length !== ROOM_CODE_LENGTH) {
+      setError(`El código debe tener ${ROOM_CODE_LENGTH} caracteres`);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const user = await startSession();
+    if (!user) return;
+
+    try {
+      const roomId = await getRoomIdByCode(roomCode.trim());
+      if (!roomId) {
+        setError("No se encontró ninguna sala con ese código");
+        setLoading(false);
+        return;
+      }
+      localStorage.setItem(PLAYER_NAME_KEY, name);
+      router.push(`/room/${roomId}`);
+    } catch {
+      setError("No se pudo unir a la sala. Revisá tu conexión e intentá de nuevo.");
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold text-white mb-2 tracking-tight">
+            Tuti Frutti
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-blue-100 text-lg">
+            El juego de palabras más divertido
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="p-6 pb-4">
+            <label
+              htmlFor="player-name"
+              className="block text-sm font-medium text-gray-700 mb-1.5"
+            >
+              Tu nombre
+            </label>
+            <input
+              id="player-name"
+              ref={nameRef}
+              type="text"
+              placeholder="Ingresá tu nombre"
+              maxLength={20}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-gray-900"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+
+          <div className="px-6 pb-4">
+            <button
+              onClick={handleCreate}
+              disabled={loading}
+              className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20"
+            >
+              {loading ? "Un momento..." : "Crear sala"}
+            </button>
+          </div>
+
+          <div className="relative px-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-3 bg-white text-gray-400">o</span>
+            </div>
+          </div>
+
+          <div className="p-6 pt-4 space-y-4">
+            <div>
+              <label
+                htmlFor="room-code"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
+              >
+                Código de sala
+              </label>
+              <input
+                id="room-code"
+                type="text"
+                value={roomCode}
+                onChange={(e) =>
+                  setRoomCode(
+                    e.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "")
+                      .slice(0, ROOM_CODE_LENGTH)
+                  )
+                }
+                placeholder="Ej: ABC123"
+                maxLength={ROOM_CODE_LENGTH}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-center text-2xl font-mono tracking-[0.3em] text-gray-900 uppercase"
+              />
+            </div>
+            <button
+              onClick={handleJoin}
+              disabled={loading}
+              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-600/20"
+            >
+              {loading ? "Un momento..." : "Unirse con código"}
+            </button>
+          </div>
         </div>
-      </main>
+
+        {error && (
+          <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        <p className="text-center text-blue-200/70 text-sm mt-6">
+          Jugá con amigos en tiempo real
+        </p>
+      </div>
     </div>
   );
 }

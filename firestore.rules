@@ -1,0 +1,106 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tuti Frutti — Reglas de seguridad de Firestore
+//
+// Identidad: cada navegador inicia sesión de forma anónima (Firebase Auth). El
+// `uid` anónimo es el `playerId` y es el id de los documentos de jugador y de
+// respuestas, por lo que las reglas verifican la identidad real y no un valor
+// enviado por el cliente.
+//
+// Alcance de lectura:
+//   - Salas y jugadores: cualquier usuario autenticado (necesario para unirse
+//     por enlace/código y ver la sala antes de entrar).
+//   - Respuestas: solo miembros de la sala (evita espiar respuestas ajenas).
+//
+// Limitación conocida (README → Seguridad): un usuario autenticado podría
+// enumerar salas. Se mitiga con ids aleatorios y códigos de 6 caracteres. Un
+// cierre hermético requeriría Cloud Functions o App Check (fuera del plan Spark
+// para este proyecto).
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function roomExists(roomId) {
+      return exists(/databases/$(database)/documents/rooms/$(roomId));
+    }
+
+    function roomHostId(roomId) {
+      return get(/databases/$(database)/documents/rooms/$(roomId)).data.hostId;
+    }
+
+    // A signed-in user belongs to the room when a player document with their
+    // uid exists in the players subcollection.
+    function isMember(roomId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(request.auth.uid));
+    }
+
+    function isHost(roomId) {
+      return isSignedIn() && roomExists(roomId) && roomHostId(roomId) == request.auth.uid;
+    }
+
+    // ─── rooms ────────────────────────────────────────────────────────────────
+    match /rooms/{roomId} {
+      // Readable by any signed-in player so a shared link can be resolved and
+      // the "lobby" state shown before joining.
+      allow read: if isSignedIn();
+
+      // Anyone signed in can create a room, but only as its own host.
+      allow create: if isSignedIn()
+        && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.status == 'lobby';
+
+      // Only the host mutates room state, and cannot reassign the host. Uses the
+      // existing document (no rule-level get) so updates do not add a read.
+      allow update: if isSignedIn()
+        && resource.data.hostId == request.auth.uid
+        && request.resource.data.hostId == resource.data.hostId;
+
+      // Host closes the room only outside an active round.
+      allow delete: if isSignedIn()
+        && resource.data.hostId == request.auth.uid
+        && (resource.data.status == 'lobby' || resource.data.status == 'finished');
+
+      // ─── players ────────────────────────────────────────────────────────────
+      match /players/{playerId} {
+        allow read: if isSignedIn();
+
+        // A player may only create/update their own document (own uid).
+        allow create: if isSignedIn()
+          && request.auth.uid == playerId
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 20;
+        allow update: if isSignedIn()
+          && request.auth.uid == playerId
+          && request.resource.data.name == resource.data.name;
+
+        // Leaving (self) or being kicked by the host.
+        allow delete: if isSignedIn()
+          && (request.auth.uid == playerId || isHost(roomId));
+      }
+
+      // ─── responses ──────────────────────────────────────────────────────────
+      match /rounds/{roundNumber}/responses/{playerId} {
+        // Only room members can read answers (prevents outsiders peeking).
+        allow read: if isMember(roomId);
+
+        // Each player writes only their own answers.
+        allow create: if isSignedIn()
+          && request.auth.uid == playerId
+          && isMember(roomId);
+        allow update: if isSignedIn()
+          && request.auth.uid == playerId;
+        allow delete: if isHost(roomId);
+      }
+    }
+  }
+}

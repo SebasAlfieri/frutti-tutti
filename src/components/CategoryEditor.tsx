@@ -1,0 +1,196 @@
+"use client";
+
+import { useState } from "react";
+import type { Category, RoomSettings } from "@/types";
+
+type CategoryEditorProps = {
+  categories: Category[];
+  pointsPerCorrect: number;
+  roundsToWin: number;
+  onSave: (settings: RoomSettings) => Promise<void>;
+};
+
+const MAX_CATEGORIES = 12;
+const MIN_CATEGORIES = 2;
+
+function createCategoryId(): string {
+  return `cat_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
+ * Lets the host customise the categories and scoring rules before the game.
+ * The whole configuration is persisted in a single write when the host saves,
+ * never on each keystroke.
+ */
+export default function CategoryEditor({
+  categories,
+  pointsPerCorrect,
+  roundsToWin,
+  onSave
+}: CategoryEditorProps) {
+  const [draft, setDraft] = useState<Category[]>(categories);
+  const [points, setPoints] = useState(pointsPerCorrect);
+  const [rounds, setRounds] = useState(roundsToWin);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleAdd = () => {
+    if (draft.length >= MAX_CATEGORIES) return;
+    setSaved(false);
+    setDraft([
+      ...draft,
+      { id: createCategoryId(), label: "Nueva categoría", placeholder: "" }
+    ]);
+  };
+
+  const handleRemove = (id: string) => {
+    if (draft.length <= MIN_CATEGORIES) return;
+    setSaved(false);
+    setDraft(draft.filter((category) => category.id !== id));
+  };
+
+  const handleChange = (
+    id: string,
+    field: "label" | "placeholder",
+    value: string
+  ) => {
+    setSaved(false);
+    setDraft(
+      draft.map((category) =>
+        category.id === id ? { ...category, [field]: value } : category
+      )
+    );
+  };
+
+  const handleSave = async () => {
+    const cleaned = draft.map((category) => ({
+      ...category,
+      label: category.label.trim(),
+      placeholder: category.placeholder.trim()
+    }));
+
+    if (cleaned.length < MIN_CATEGORIES) {
+      setError(`Necesitás al menos ${MIN_CATEGORIES} categorías`);
+      return;
+    }
+    if (cleaned.some((category) => category.label.length === 0)) {
+      setError("Ninguna categoría puede quedar sin nombre");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave({
+        categories: cleaned,
+        pointsPerCorrect: points,
+        roundsToWin: rounds
+      });
+      setSaved(true);
+    } catch {
+      setError("No se pudo guardar la configuración");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {draft.map((category, index) => (
+          <div key={category.id} className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 w-5 text-right">
+              {index + 1}
+            </span>
+            <input
+              type="text"
+              value={category.label}
+              onChange={(e) => handleChange(category.id, "label", e.target.value)}
+              placeholder="Nombre de la categoría"
+              maxLength={30}
+              aria-label={`Nombre de la categoría ${index + 1}`}
+              className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-sm text-gray-900"
+            />
+            <button
+              type="button"
+              onClick={() => handleRemove(category.id)}
+              disabled={draft.length <= MIN_CATEGORIES}
+              aria-label={`Eliminar categoría ${index + 1}`}
+              className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={handleAdd}
+        disabled={draft.length >= MAX_CATEGORIES}
+        className="text-sm text-blue-600 hover:text-blue-800 font-medium transition disabled:opacity-40"
+      >
+        + Agregar categoría
+      </button>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="block text-xs text-gray-500 mb-1">
+            Puntos por acierto único
+          </span>
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={points}
+            onChange={(e) => {
+              setSaved(false);
+              setPoints(Math.max(1, Number(e.target.value) || 1));
+            }}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-sm text-gray-900"
+          />
+        </label>
+        <label className="block">
+          <span className="block text-xs text-gray-500 mb-1">
+            Rondas para terminar
+          </span>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={rounds}
+            onChange={(e) => {
+              setSaved(false);
+              setRounds(Math.max(1, Number(e.target.value) || 1));
+            }}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-sm text-gray-900"
+          />
+        </label>
+      </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full py-2.5 px-4 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl transition disabled:opacity-50"
+      >
+        {saving ? "Guardando..." : saved ? "Guardado ✓" : "Guardar configuración"}
+      </button>
+    </div>
+  );
+}
