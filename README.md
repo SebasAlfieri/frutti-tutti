@@ -50,10 +50,16 @@ navegador y el enlace o código de la sala.
   renombrar categorías, y ajustar los puntos por acierto y la cantidad de rondas.
 - Cada jugador completa sus respuestas en su propio dispositivo. Los borradores
   se guardan **localmente**, nunca en Firestore.
-- Botón **«¡Tuti Frutti!»** para cerrar la ronda; el fin de ronda se sincroniza
-  para todos y también se cierra solo cuando se agota el tiempo.
+- Botón **«¡Tuti Frutti!»** que **cualquier jugador puede pulsar** cuando tiene
+  todas sus categorías completas; cierra la ronda para todos. El fin de ronda se
+  sincroniza y también se cierra solo cuando se agota el tiempo.
 - Validación visual de respuestas (única / repetida / no válida) y puntuaciones
   calculadas en cada cliente.
+- Botón **«¡Listo!»** para pasar de ronda: **cada jugador** lo pulsa al terminar de
+  revisar la ronda (se puede cancelar), se muestra **quién ya está listo y quién
+  falta**, y cuando **todos** están listos empieza la siguiente ronda automáticamente
+  (o se termina la partida si era la última). El host tiene un enlace secundario
+  para continuar sin esperar si alguien quedó desconectado.
 - **Clasificación acumulada visible en cada validación de ronda** y pantalla final
   con el ganador (o empate).
 - Botón «Jugar otra vez» para reiniciar la partida con los mismos jugadores.
@@ -281,9 +287,12 @@ Notas de diseño:
 5. Cada cliente escribe **una vez** sus respuestas (`responses/{uid}`).
 6. El primer **¡Tuti Frutti!** (o el fin del temporizador) escribe `finishedBy`.
    Todos ven el cambio y pasan a validación.
-7. El host avanza a la siguiente ronda o finaliza el juego (estado `finished`).
-   En cada validación se muestra la **clasificación acumulada** de todas las
-   rondas jugadas.
+7. En la validación, cada jugador pulsa **«¡Listo!»** (una escritura en su propio
+   documento `players/{uid}`, que ya se escribe/escucha). Se muestra quién está
+   listo y quién falta. Cuando **todos** están listos, el cliente del host avanza
+   automáticamente a la siguiente ronda o finaliza la partida (`finished`). En
+   cada validación se muestra la **clasificación acumulada** de todas las rondas
+   jugadas.
 8. Al finalizar, cada cliente calcula la clasificación total y se muestra el
    ganador.
 
@@ -300,8 +309,9 @@ lectura/escritura indiscriminada.
 | --- | --- |
 | Crear sala | Usuario autenticado y `hostId == uid`. |
 | Modificar sala (letra, ronda, ajustes, estado) | Solo el host (`uid == hostId`); el host no puede reasignarse. |
+| Cerrar la ronda en curso (`finishedBy`) | Cualquier **miembro**: solo puede marcarse a sí mismo como quien cierra, solo si la ronda está en curso, y sin tocar ningún otro campo. |
 | Cerrar sala | Solo el host, y no en medio de una ronda. |
-| Crear/editar jugador | Solo el propio `uid`; el nombre tiene longitud acotada y no puede cambiarse después de entrar. |
+| Crear/editar jugador | Solo el propio `uid`; el nombre tiene longitud acotada y no puede cambiarse después de entrar. El estado **«listo»** para la próxima ronda se guarda aquí (nadie puede marcar a otro). |
 | Expulsar jugador | El host, o el propio jugador (salir). |
 | Escribir respuestas | Solo el propio `uid` y solo si es miembro de la sala. |
 | Leer respuestas | Solo miembros de la sala (nadie de afuera puede espiar). |
@@ -328,6 +338,12 @@ lado del cliente. Están asumidas y limitadas:
 - **Presencia:** es un *heartbeat* desde el cliente. Si alguien cierra el
   navegador abruptamente, puede figurar "online" hasta que falle el siguiente
   latido.
+- **Avance de ronda:** como solo el host puede modificar el documento compartido
+  de la sala, su cliente es el que inicia la siguiente ronda cuando **todos**
+  están listos. El host siempre es un jugador y también debe pulsar «¡Listo!»,
+  así que en la práctica está presente; aun así, si el host desapareciera durante
+  la validación, la partida quedaría esperándolo. El enlace **«Continuar sin
+  esperar»** (solo host) evita bloqueos cuando un jugador quedó desconectado.
 
 ---
 
@@ -351,7 +367,10 @@ lado del cliente. Están asumidas y limitadas:
 - **Sin datos derivados:** las puntuaciones y la clasificación se calculan en el
   cliente; no se guardan.
 - **Escrituras de estado mínimas:** iniciar ronda, cerrar ronda y finalizar son
-  una escritura cada una.
+  una escritura cada una. El **«listo» de cada jugador** es una escritura en su
+  propio documento dentro de la subcolección de jugadores que **ya está
+  suscrita**, así que no agrega listeners ni lecturas iniciales: solo reutiliza
+  el canal existente.
 - **Presencia acotada:** el heartbeat (60 s) corre **solo en el lobby**, que es la
   única pantalla que muestra quién está online.
 - **Sin transacciones innecesarias:** la única transacción es la creación de la
@@ -371,15 +390,16 @@ partida y ~4 minutos de lobby.
 | Iniciar ronda ×3 | 3 | ~18 (sala) |
 | Enviar respuestas (6×3) | 18 | — (nadie suscrito mientras se escribe) |
 | Cerrar ronda ×3 + finalizar | 4 | ~24 (sala) |
+| Marcar «listo» (6 jugadores × 3 rondas) | 18 | ~108 (se difunde al listener de jugadores) |
 | Lecturas iniciales de sala/jugadores | — | ~85 |
 | Validación + clasificación acumulada (rondas `1..N`) | — | ~216 |
 | Pantalla final (reutiliza la suscripción anterior) | — | — |
-| **Total aproximado** | **~75** | **~585** |
+| **Total aproximado** | **~93** | **~693** |
 
 Con los límites gratuitos (50.000 lecturas y 20.000 escrituras por día) esto da
-del orden de **~75–250 partidas por día**, dependiendo de si el cuello de botella
-son las lecturas (presencia) o las escrituras. El consumo es más que suficiente
-para uso casual.
+del orden de **~70–200 partidas por día**, dependiendo de si el cuello de botella
+son las lecturas (presencia y «listo») o las escrituras. El consumo es más que
+suficiente para uso casual.
 
 > Las cifras son aproximadas y varían con la duración del lobby, las
 > reconexiones y la cantidad de jugadores.
@@ -389,7 +409,10 @@ para uso casual.
 - **Más jugadores:** las lecturas de la subcolección de jugadores crecen de forma
   cuadrática (cada cambio se difunde a todos los listeners).
 - **Lobby muy largo:** cada heartbeat (cada 60 s por jugador) se difunde a todos.
-- **Más rondas:** más escrituras y lecturas de respuestas.
+- **Más rondas:** más escrituras y lecturas de respuestas, y una escritura de
+  «listo» por jugador y por ronda (difundida a todos los listeners de jugadores).
+- **Jugadores que se marcan y desmarcan «listo» repetidamente:** cada cambio es una
+  escritura que se difunde a todos.
 - **Reconexiones frecuentes** (recargar la página muchas veces): nuevas lecturas
   iniciales y reinicio del heartbeat. Si se recarga durante la validación, se
   vuelven a leer las respuestas de todas las rondas `1..N`.

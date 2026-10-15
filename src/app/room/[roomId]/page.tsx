@@ -16,6 +16,7 @@ import {
   startRound,
   updateRoomStatus
 } from "@/lib/repositories/room";
+import { setPlayerReady } from "@/lib/repositories/player";
 import { subscribeToResponses, submitResponses } from "@/lib/repositories/round";
 import { clearDraft, readDraft } from "@/lib/game/draft";
 import {
@@ -232,6 +233,55 @@ function RoomPageContent() {
     await updateRoomStatus(roomId, "finished");
   }, [roomId]);
 
+  /**
+   * Advances after everyone is ready: starts the next round, or finishes the
+   * game when the last round was already played.
+   */
+  const advanceRound = useCallback(async () => {
+    if (!room) return;
+    if (room.currentRound >= room.settings.roundsToWin) {
+      console.log("[tuti:room] todos listos → finalizando la partida");
+      await handleFinishGame();
+    } else {
+      console.log("[tuti:room] todos listos → comenzando ronda", room.currentRound + 1);
+      await handleNextRound();
+    }
+  }, [room, handleNextRound, handleFinishGame]);
+
+  /** Marks the local player as ready (or not) for the next round. */
+  const handleToggleReady = useCallback(async () => {
+    if (!userId || !room || room.roundStartedAt == null) return;
+    const isReady =
+      players.find((player) => player.id === userId)?.readyRoundStartedAt ===
+      room.roundStartedAt;
+    await setPlayerReady(roomId, userId, isReady ? null : room.roundStartedAt);
+  }, [userId, room, roomId, players]);
+
+  // ─── Auto-advance when everyone is ready ──────────────────────────────────
+  // Only the host can update the shared room document, so the host's client
+  // watches for "all ready" and starts the next round / finishes the game.
+  // The ref guards against firing more than once per round while the snapshot
+  // is still catching up (and resets on failure so it can retry).
+  const autoAdvancedRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isHost || !room || room.status !== "playing" || !room.finishedBy) return;
+    const roundKey = room.roundStartedAt;
+    if (roundKey == null) return;
+
+    const everyoneReady =
+      players.length > 0 &&
+      players.every((player) => player.readyRoundStartedAt === roundKey);
+    if (!everyoneReady) return;
+    if (autoAdvancedRef.current === roundKey) return;
+
+    autoAdvancedRef.current = roundKey;
+    void advanceRound().catch((error) => {
+      console.error("[tuti:room] no se pudo avanzar de ronda:", error);
+      autoAdvancedRef.current = null;
+    });
+  }, [isHost, room, players, advanceRound]);
+
   const handlePlayAgain = useCallback(async () => {
     if (!room) return;
     console.log("[tuti:room] host reinicia la partida");
@@ -337,8 +387,8 @@ function RoomPageContent() {
           playerId={userId!}
           responses={roundResponses}
           standings={standings}
-          onNextRound={handleNextRound}
-          onFinishGame={handleFinishGame}
+          onToggleReady={handleToggleReady}
+          onForceAdvance={isHost ? advanceRound : undefined}
         />
       );
     }

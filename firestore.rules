@@ -58,11 +58,25 @@ service cloud.firestore {
         && request.resource.data.hostId == request.auth.uid
         && request.resource.data.status == 'lobby';
 
-      // Only the host mutates room state, and cannot reassign the host. Uses the
-      // existing document (no rule-level get) so updates do not add a read.
-      allow update: if isSignedIn()
-        && resource.data.hostId == request.auth.uid
-        && request.resource.data.hostId == resource.data.hostId;
+      // The host has full control over room state (but cannot reassign the
+      // host). Additionally, ANY member may close the round in progress, and
+      // only by marking themselves as the finisher: the affected keys are
+      // restricted to the round-close fields, so a member can never touch the
+      // letter, status, settings, currentRound, etc.
+      allow update: if isSignedIn() && (
+        (
+          resource.data.hostId == request.auth.uid
+          && request.resource.data.hostId == resource.data.hostId
+        )
+        || (
+          isMember(roomId)
+          && resource.data.status == 'playing'
+          && resource.data.finishedBy == null
+          && request.resource.data.finishedBy.playerId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['finishedBy', 'roundEndedAt', 'lastActivity'])
+        )
+      );
 
       // Host closes the room only outside an active round.
       allow delete: if isSignedIn()

@@ -19,3 +19,28 @@ export async function setPlayerConnected(
     lastSeen: Date.now()
   });
 }
+
+/**
+ * Marks (or clears) the player as ready for the next round.
+ *
+ * `roundStartedAt` identifies the round being validated: passing the current
+ * round's timestamp means "ready for the next round". Passing `null` clears it.
+ * Only the owner can write their own document, which the security rules already
+ * enforce (the update keeps `name` unchanged).
+ */
+export async function setPlayerReady(
+  roomId: string,
+  playerId: string,
+  roundStartedAt: number | null
+): Promise<void> {
+  console.log(
+    "[tuti:player] setPlayerReady() →",
+    playerId,
+    "=",
+    roundStartedAt == null ? "no listo" : "listo"
+  );
+  const db = getDb();
+  await updateDoc(doc(db, "rooms", roomId, "players", playerId), {
+    readyRoundStartedAt: roundStartedAt
+  });
+}

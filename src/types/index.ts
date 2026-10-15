@@ -20,6 +20,13 @@ export type Player = {
   connected: boolean;
   joinedAt: number;
   lastSeen: number;
+  /**
+   * `roundStartedAt` of the round this player marked as "ready". `null`/absent
+   * means not ready. Using the round's start timestamp (instead of its number)
+   * makes readiness unique per round and across games, so nothing needs to be
+   * reset when a new game starts.
+   */
+  readyRoundStartedAt?: number | null;
 };
 
 export type FinishedBy = {

@@ -69,6 +69,12 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
   const ownName =
     players.find((player) => player.id === playerId)?.name ?? "Jugador";
 
+  // "¡Tuti Frutti!" only makes sense once every category has an answer. The
+  // countdown timeout still closes the round regardless (partial answers count).
+  const allFilled = room.settings.categories.every(
+    (category) => (answers[category.id] ?? "").trim().length > 0
+  );
+
   // Submits the player's answers and closes the round if nobody has yet.
   // Invoked from the countdown (timeout) and from the ¡Tuti Frutti! button.
   const endRound = useCallback(
@@ -109,7 +115,7 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
 
   // ─── "¡Tuti Frutti!" ──────────────────────────────────────────────────────
   const handleTutiFrutti = async () => {
-    if (submittedRef.current) return;
+    if (submittedRef.current || !allFilled) return;
     await endRound(ownName);
   };
 
@@ -220,11 +226,16 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
       <div className="w-full max-w-lg mt-4">
         <button
           onClick={handleTutiFrutti}
-          disabled={submitted || submitting || isRoundFinished}
+          disabled={submitted || submitting || isRoundFinished || !allFilled}
           className="w-full py-5 px-4 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xl font-bold rounded-2xl shadow-2xl shadow-pink-500/30 transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
         >
           {submitted ? "¡Enviado!" : submitting ? "Enviando..." : "¡Tuti Frutti!"}
         </button>
+        {!allFilled && !submitted && !isRoundFinished && (
+          <p className="text-center text-xs text-blue-100 mt-2">
+            Completá todas las categorías para poder decir ¡Tuti Frutti!
+          </p>
+        )}
       </div>
     </div>
   );
