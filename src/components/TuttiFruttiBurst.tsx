@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Confetti from "@/components/Confetti";
+import { playSound } from "@/lib/sound";
 
 type TuttiFruttiBurstProps = {
   playerName: string;
@@ -31,6 +32,7 @@ export default function TuttiFruttiBurst({
 
   useEffect(() => {
     if (!visible) return;
+    playSound("tutti");
     const timer = setTimeout(() => setVisible(false), BURST_TOTAL_MS);
     return () => clearTimeout(timer);
   }, [visible]);

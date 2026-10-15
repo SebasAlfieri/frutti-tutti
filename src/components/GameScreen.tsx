@@ -8,6 +8,7 @@ import { getRoundLetter } from "@/lib/game/scoring";
 import { accentFor, iconForCategory } from "@/lib/game/category-theme";
 import { finishRound } from "@/lib/repositories/room";
 import { submitResponses } from "@/lib/repositories/round";
+import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
 import { useEnterToNext } from "@/hooks/use-enter-to-next";
 import RoundIntro from "@/components/RoundIntro";
 
@@ -41,6 +42,8 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
   );
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const startSoundPlayedRef = useRef<number | null>(null);
   // Intro de "ronda empezando". Se decide en el primer render del cliente: el
   // componente solo se monta cuando la sala ya cargó (nunca en el servidor), así
   // que no hay riesgo de desajuste de hidratación. Solo se reproduce si la ronda
@@ -142,7 +145,18 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
   };
 
   const handleChange = (categoryId: string, value: string) => {
+    const wasEmpty = (answers[categoryId] ?? "").trim().length === 0;
+    const isEmpty = value.trim().length === 0;
+    if (wasEmpty && !isEmpty) {
+      playSound("fill");
+    }
     setAnswers((prev) => ({ ...prev, [categoryId]: value }));
+  };
+
+  const handleToggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
   };
 
   const isRoundFinished = room.finishedBy != null;
@@ -168,6 +182,14 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
       ? "text-amber-600"
       : "text-violet-900";
 
+  useEffect(() => {
+    if (room.roundStartedAt == null) return;
+    if (startSoundPlayedRef.current === room.roundStartedAt) return;
+    if (Date.now() - room.roundStartedAt > INTRO_WINDOW_MS) return;
+    startSoundPlayedRef.current = room.roundStartedAt;
+    playSound("roundStart");
+  }, [room.roundStartedAt]);
+
   return (
     <main className="relative flex min-h-screen flex-col items-center px-4 py-6">
       {showIntro && (
@@ -182,6 +204,21 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
 
       {/* Header: Letra + Ronda + Tiempo */}
       <div className="mb-4 w-full max-w-lg">
+        <div className="mb-2 flex items-center justify-between px-1">
+          <span className="rounded-full bg-white/10 px-2.5 py-1 font-mono text-xs font-bold tracking-[0.25em] text-white/80 backdrop-blur">
+            {room.code}
+          </span>
+          <button
+            type="button"
+            onClick={handleToggleSound}
+            aria-label={soundOn ? "Silenciar sonidos" : "Activar sonidos"}
+            aria-pressed={soundOn}
+            title={soundOn ? "Silenciar sonidos" : "Activar sonidos"}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-base backdrop-blur transition hover:bg-white/20 active:scale-95"
+          >
+            <span aria-hidden>{soundOn ? "🔊" : "🔇"}</span>
+          </button>
+        </div>
         <div className="tuti-card flex items-center justify-between p-4">
           <div className="text-center">
             <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-violet-400">

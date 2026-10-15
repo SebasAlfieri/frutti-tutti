@@ -80,6 +80,10 @@ navegador y el enlace o código de la sala.
 - **Campos de respuesta llamativos**: cada categoría es una tarjeta con su propio
   color, un emoji temático, la letra de la ronda como marca de agua y un borde de
   gradiente que se anima al enfocar.
+- **Sonidos** sintetizados con la Web Audio API (sin archivos ni dependencias):
+  un «ding» al completar cada categoría, un arpegio al empezar la ronda y una
+  fanfarria al gritar «¡Tutti Frutti!». Hay un botón para silenciar y la
+  preferencia se recuerda en el dispositivo.
 
 **Diseño y animaciones**
 
@@ -103,6 +107,11 @@ Piezas visuales compartidas:
 - `hooks/use-enter-to-next.ts` + `lib/focus-next-field.ts`: navegación con Enter
   entre campos visibles.
 - `lib/game/category-theme.ts`: acentos de color y emoji por categoría.
+- `lib/sound.ts`: sonidos cortos sintetizados con la Web Audio API (sin assets).
+- `SoundUnlocker.tsx`: habilita el audio en el primer gesto del usuario (lo exige
+  Safari para los sonidos que llegan desde Firestore, sin gesto propio).
+- `app/icon.svg` (favicon) y `app/apple-icon.png` (icono de inicio en iOS): un
+  lápiz sobre el degradado de la marca.
 
 > Todas las animaciones respetan `prefers-reduced-motion`: si el sistema pide
 > movimiento reducido, se desactivan y la intro de ronda se omite.
@@ -250,6 +259,8 @@ src/
   app/
     page.tsx                 # Inicio: crear / unirse (con nombre y código)
     layout.tsx
+    icon.svg                 # Favicon (lápiz)
+    apple-icon.png           # Icono de inicio en iOS (180x180)
     room/[roomId]/page.tsx   # Pantalla de sala (lobby, juego, validación, resultados)
   components/
     Lobby.tsx                # Sala de espera + configuración de categorías
@@ -259,6 +270,7 @@ src/
     ResultsScreen.tsx        # Clasificación final y ganador
     JoinGate.tsx             # Nombre para unirse desde un enlace
     PlayfulBackground.tsx    # Fondo animado compartido (decorativo)
+    SoundUnlocker.tsx        # Habilita el audio al primer gesto
     RoundIntro.tsx           # Overlay de inicio de ronda
     TuttiFruttiBurst.tsx     # Sorpresa de fin de ronda (confeti)
     Confetti.tsx             # Lluvia de confeti reutilizable
@@ -273,6 +285,7 @@ src/
     firebase.ts              # Inicialización de la app y Firestore
     constants.ts             # Categorías y ajustes por defecto, límites
     focus-next-field.ts      # Helper de navegación entre campos
+    sound.ts                 # Sonidos cortos sintetizados (Web Audio API)
     game/scoring.ts          # Lógica pura de puntuación/validación
     game/category-theme.ts   # Colores y emoji por categoría
     repositories/

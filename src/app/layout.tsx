@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PlayfulBackground from "@/components/PlayfulBackground";
+import SoundUnlocker from "@/components/SoundUnlocker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="relative min-h-full flex flex-col">
         <PlayfulBackground />
+        <SoundUnlocker />
         {children}
       </body>
     </html>
