@@ -111,7 +111,9 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
           await finishRound(room.id, { playerId, playerName, at: Date.now() });
         }
       } catch (error) {
-        console.error("[tuti:game] no se pudo cerrar la ronda:", error);
+        // Si alguien más ya cerró la ronda (carrera), ignoramos el error: las
+        // respuestas ya fueron enviadas y el cambio se propagará por realtime.
+        console.warn("[tuti:game] no se pudo cerrar la ronda (posible carrera):", error);
       }
     },
     [doSubmit, room.id, room.finishedBy, playerId]
