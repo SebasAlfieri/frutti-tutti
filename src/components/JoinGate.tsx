@@ -39,20 +39,23 @@ export default function JoinGate({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
+    <main className="relative flex min-h-screen items-center justify-center px-4 py-10">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6"
+        className="tuti-card w-full max-w-sm animate-fade-up p-6 sm:p-7"
       >
-        <div className="text-center mb-6">
-          <p className="text-sm text-gray-500 mb-1">Te invitaron a la sala</p>
-          <p className="text-3xl font-mono font-bold tracking-[0.2em] text-gray-900">
+        <div className="mb-6 text-center">
+          <div className="mb-3 text-5xl animate-float">💌</div>
+          <p className="text-sm font-medium text-violet-500">
+            Te invitaron a la sala
+          </p>
+          <p className="mt-1 bg-gradient-to-r from-fuchsia-600 to-violet-600 bg-clip-text font-display text-4xl font-black tracking-[0.2em] text-transparent">
             {roomCode}
           </p>
         </div>
 
-        <label className="block mb-4">
-          <span className="block text-sm font-medium text-gray-700 mb-1.5">
+        <label className="mb-4 block">
+          <span className="mb-1.5 block font-display text-sm font-semibold text-violet-900">
             Tu nombre
           </span>
           <input
@@ -61,22 +64,24 @@ export default function JoinGate({
             placeholder="Ingresá tu nombre"
             maxLength={20}
             autoFocus
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-gray-900"
+            className="tuti-input"
           />
         </label>
 
         {error && (
-          <p className="text-sm text-red-600 mb-4 text-center">{error}</p>
+          <p className="mb-4 animate-pop-in rounded-xl bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-700">
+            {error}
+          </p>
         )}
 
         <button
           type="submit"
           disabled={joining}
-          className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-600/20"
+          className="tuti-cta tuti-sheen w-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3.5 text-white shadow-lg shadow-emerald-600/30 disabled:opacity-50"
         >
-          {joining ? "Entrando..." : "Entrar a la sala"}
+          {joining ? "Entrando..." : "Entrar a la sala 🎉"}
         </button>
       </form>
-    </div>
+    </main>
   );
 }

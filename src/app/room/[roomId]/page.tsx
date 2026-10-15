@@ -33,6 +33,7 @@ import GameScreen from "@/components/GameScreen";
 import ValidationScreen from "@/components/ValidationScreen";
 import ResultsScreen from "@/components/ResultsScreen";
 import JoinGate from "@/components/JoinGate";
+import TuttiFruttiBurst from "@/components/TuttiFruttiBurst";
 
 const PLAYER_NAME_KEY = "tuti-player-name";
 
@@ -381,15 +382,21 @@ function RoomPageContent() {
   if (room.status === "playing") {
     if (room.finishedBy) {
       return (
-        <ValidationScreen
-          room={room}
-          players={players}
-          playerId={userId!}
-          responses={roundResponses}
-          standings={standings}
-          onToggleReady={handleToggleReady}
-          onForceAdvance={isHost ? advanceRound : undefined}
-        />
+        <>
+          <TuttiFruttiBurst
+            playerName={room.finishedBy.playerName}
+            finishedAt={room.finishedBy.at}
+          />
+          <ValidationScreen
+            room={room}
+            players={players}
+            playerId={userId!}
+            responses={roundResponses}
+            standings={standings}
+            onToggleReady={handleToggleReady}
+            onForceAdvance={isHost ? advanceRound : undefined}
+          />
+        </>
       );
     }
     return <GameScreen key={room.currentRound} room={room} players={players} playerId={userId!} />;
@@ -407,8 +414,15 @@ function RoomPageContent() {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-blue-600 to-indigo-700 flex items-center justify-center">
-      <div className="text-white text-lg animate-pulse">Cargando sala...</div>
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex h-16 w-16 animate-float items-center justify-center rounded-3xl bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-3xl shadow-2xl shadow-fuchsia-500/40">
+          🍓
+        </div>
+        <div className="font-display text-lg font-semibold text-white/90 animate-pulse-soft">
+          Cargando sala...
+        </div>
+      </div>
     </div>
   );
 }
@@ -421,12 +435,13 @@ function ErrorScreen({
   onHome: () => void;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
-        <p className="text-red-600 mb-4">{message}</p>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="tuti-card w-full max-w-sm animate-pop-in p-8 text-center">
+        <div className="mb-3 text-5xl">😵</div>
+        <p className="mb-5 font-medium text-violet-800">{message}</p>
         <button
           onClick={onHome}
-          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition"
+          className="tuti-cta w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 px-6 py-3 text-white shadow-lg shadow-fuchsia-600/30"
         >
           Volver al inicio
         </button>

@@ -71,6 +71,32 @@ navegador y el enlace o código de la sala.
   resultados y reconexión.
 - Sin recargas completas de página (todo es client-side con listeners en vivo).
 - Mensajes de error de conexión útiles.
+- Diseño festivo con animaciones: fondo animado compartido, intro de ronda con
+  revelado de letra, explosión de confeti al gritar «¡Tutti Frutti!», avisos
+  cuando alguien entra o sale de la sala, y micro-interacciones en botones,
+  progreso y clasificación.
+
+**Diseño y animaciones**
+
+Toda la estética se resuelve con **CSS puro** (Tailwind v4 + `@keyframes` propios
+en `src/app/globals.css`), sin agregar librerías de animación. Los tokens
+`--animate-*` exponen las clases `animate-*`, y hay utilidades de diseño
+reutilizables en la capa `components` (`.tuti-card`, `.tuti-input`, `.tuti-cta`,
+`.tuti-sheen`). La tipografía de títulos usa **Fredoka** vía `next/font`.
+
+Piezas visuales compartidas:
+
+- `PlayfulBackground.tsx`: degradado con «auroras» y frutas/letras flotando
+  (decorativo, `aria-hidden`).
+- `RoundIntro.tsx`: overlay de inicio de ronda (se muestra una vez por ronda).
+- `TuttiFruttiBurst.tsx`: sorpresa de fin de ronda con confeti y el nombre de
+  quién la cerró.
+- `Confetti.tsx`: lluvia de confeti reutilizable.
+- `hooks/use-player-activity.ts`: detecta altas/bajas para animarlas y mostrar
+  avisos, reutilizando la lista del listener existente (sin lecturas extra).
+
+> Todas las animaciones respetan `prefers-reduced-motion`: si el sistema pide
+> movimiento reducido, se desactivan y la intro de ronda se omite.
 
 ---
 
@@ -223,10 +249,15 @@ src/
     ValidationScreen.tsx     # Respuestas de todos + puntuaciones
     ResultsScreen.tsx        # Clasificación final y ganador
     JoinGate.tsx             # Nombre para unirse desde un enlace
+    PlayfulBackground.tsx    # Fondo animado compartido (decorativo)
+    RoundIntro.tsx           # Overlay de inicio de ronda
+    TuttiFruttiBurst.tsx     # Sorpresa de fin de ronda (confeti)
+    Confetti.tsx             # Lluvia de confeti reutilizable
   hooks/
     use-room.ts              # Suscripción al documento de sala
     use-players.ts           # Suscripción a jugadores
     use-presence.ts          # Heartbeat de presencia (solo lobby)
+    use-player-activity.ts   # Altas/bajas de jugadores (animación + avisos)
   lib/
     auth.ts                  # Sesión anónima (ensureSignedIn)
     firebase.ts              # Inicialización de la app y Firestore

@@ -33,6 +33,8 @@ type RankingRow = {
   total: number;
 };
 
+const MEDALS = ["🥇", "🥈", "🥉"];
+
 export default function ValidationScreen({
   room,
   players,
@@ -169,61 +171,68 @@ export default function ValidationScreen({
   };
 
   const colorStyles: Record<AnswerColor, string> = {
-    green: "bg-green-50 border-green-300 text-green-800",
-    yellow: "bg-yellow-50 border-yellow-300 text-yellow-800",
-    red: "bg-red-50 border-red-300 text-red-800",
-    gray: "bg-gray-50 border-gray-200 text-gray-400"
+    green: "bg-emerald-50 border-emerald-200 text-emerald-800",
+    yellow: "bg-amber-50 border-amber-200 text-amber-800",
+    red: "bg-rose-50 border-rose-200 text-rose-800",
+    gray: "bg-violet-50 border-violet-100 text-violet-300"
   };
 
   const dotStyles: Record<AnswerColor, string> = {
-    green: "bg-green-500",
-    yellow: "bg-yellow-500",
-    red: "bg-red-500",
-    gray: "bg-gray-300"
+    green: "bg-emerald-500",
+    yellow: "bg-amber-500",
+    red: "bg-rose-500",
+    gray: "bg-violet-200"
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-blue-600 to-indigo-700 flex flex-col items-center p-4 pb-8">
+    <main className="relative flex min-h-screen flex-col items-center px-4 py-8">
       <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-2xl p-5 mb-4 text-center">
-          <h2 className="text-xl font-bold text-gray-900">
-            Validación — Ronda {room.currentRound}
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Letra: <span className="font-bold text-lg">{letter}</span>
-            {room.finishedBy && (
-              <>
-                {"  ·  "}
-                <span>
-                  Finalizada por{" "}
-                  <span className="font-medium">
-                    {room.finishedBy.playerName}
-                  </span>
-                </span>
-              </>
-            )}
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-3 text-xs text-gray-500">
+        {/* Encabezado */}
+        <div className="tuti-card animate-fade-up mb-4 p-5 text-center">
+          <div className="mb-2 flex items-center justify-center gap-3">
+            <span className="flex h-12 w-12 animate-pop-in items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 via-pink-500 to-violet-600 font-display text-2xl font-black text-white shadow-lg shadow-fuchsia-500/40">
+              {letter}
+            </span>
+            <div className="text-left">
+              <h2 className="font-display text-xl font-black text-violet-900">
+                Validación
+              </h2>
+              <p className="text-sm font-medium text-violet-400">
+                Ronda {room.currentRound} de {room.settings.roundsToWin}
+              </p>
+            </div>
+          </div>
+          {room.finishedBy && (
+            <p className="text-sm text-violet-500">
+              Finalizada por{" "}
+              <span className="font-semibold text-violet-800">
+                {room.finishedBy.playerName}
+              </span>{" "}
+              🍓
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-xs font-medium text-violet-500">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500" /> Única
-              válida
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Única válida
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />{" "}
-              Repetida (0 pts)
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Repetida (0 pts)
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500" /> No válida
+              <span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> No válida
             </span>
           </div>
         </div>
 
-        {/* Answers by category */}
-        <div className="space-y-4 mb-4">
-          {room.settings.categories.map((category) => (
-            <div key={category.id} className="bg-white rounded-2xl shadow-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+        {/* Respuestas por categoría */}
+        <div className="mb-4 space-y-4">
+          {room.settings.categories.map((category, categoryIndex) => (
+            <div
+              key={category.id}
+              className="tuti-card animate-fade-up p-4"
+              style={{ animationDelay: `${categoryIndex * 50}ms` }}
+            >
+              <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wide text-violet-700">
                 {category.label}
               </h3>
               <div className="space-y-2">
@@ -236,21 +245,21 @@ export default function ValidationScreen({
                   return (
                     <div
                       key={player.id}
-                      className={`flex items-start justify-between gap-3 px-3 py-2.5 rounded-xl border ${colorStyles[color]}`}
+                      className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-2.5 ${colorStyles[color]}`}
                     >
-                      <div className="flex items-start gap-2.5 min-w-0">
+                      <div className="flex min-w-0 items-start gap-2.5">
                         <span
-                          className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${dotStyles[color]}`}
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dotStyles[color]}`}
                         />
                         <div className="min-w-0">
                           <p className="text-sm font-medium opacity-70">
                             {player.name}
                           </p>
-                          <p className="text-base font-semibold truncate">
+                          <p className="truncate text-base font-semibold">
                             {rawAnswer || "—"}
                           </p>
                           {sharers.length > 0 && (
-                            <p className="text-xs opacity-60 mt-0.5">
+                            <p className="mt-0.5 text-xs opacity-60">
                               Compartido con: {sharers.join(", ")}
                             </p>
                           )}
@@ -264,39 +273,42 @@ export default function ValidationScreen({
           ))}
         </div>
 
-        {/* Cumulative standings (computed locally on every client) */}
-        <div className="bg-white rounded-2xl shadow-2xl p-5 mb-4">
-          <h3 className="text-lg font-bold text-gray-900 mb-1 text-center">
+        {/* Clasificación acumulada (calculada en cada cliente) */}
+        <div
+          className="tuti-card animate-fade-up mb-4 p-5"
+          style={{ animationDelay: "80ms" }}
+        >
+          <h3 className="mb-1 text-center font-display text-lg font-black text-violet-900">
             Clasificación acumulada
           </h3>
-          <p className="text-xs text-gray-400 text-center mb-3">
+          <p className="mb-3 text-center text-xs font-medium text-violet-400">
             Puntos totales hasta la ronda {room.currentRound}
           </p>
           <div className="space-y-2">
             {ranking.map((entry, idx) => (
               <div
                 key={entry.playerId}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-xl ${
+                className={`flex items-center justify-between rounded-xl px-4 py-2.5 ${
                   entry.playerId === playerId
-                    ? "bg-blue-50 border border-blue-200"
-                    : "bg-gray-50"
+                    ? "bg-gradient-to-r from-fuchsia-100 to-violet-100 ring-1 ring-fuchsia-200"
+                    : "bg-violet-50"
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-lg font-bold text-gray-400 w-6">
-                    {idx + 1}
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-7 text-center text-lg font-bold text-violet-400">
+                    {MEDALS[idx] ?? idx + 1}
                   </span>
-                  <span className="font-medium text-gray-800 truncate">
+                  <span className="truncate font-semibold text-violet-900">
                     {entry.name}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm font-medium text-emerald-600">
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-sm font-bold text-emerald-600">
                     +{entry.delta}
                   </span>
-                  <span className="font-bold text-gray-900 w-14 text-right">
+                  <span className="w-14 text-right font-black text-violet-900">
                     {entry.total}
-                    <span className="text-xs text-gray-400 font-normal ml-1">
+                    <span className="ml-1 text-xs font-normal text-violet-400">
                       pts
                     </span>
                   </span>
@@ -306,25 +318,25 @@ export default function ValidationScreen({
           </div>
         </div>
 
-        {/* Ready to continue */}
-        <div className="bg-white rounded-2xl shadow-2xl p-5 text-center">
-          <h3 className="text-lg font-bold text-gray-900 mb-1">
+        {/* Listo para continuar */}
+        <div className="tuti-card animate-fade-up p-5 text-center" style={{ animationDelay: "140ms" }}>
+          <h3 className="mb-1 font-display text-lg font-black text-violet-900">
             {isLastRound
               ? "¿Listos para ver los resultados?"
               : `¿Listos para la ronda ${room.currentRound + 1}?`}
           </h3>
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="mb-4 text-xs font-medium text-violet-400">
             {isLastRound
               ? "Cuando todos estén listos, terminamos la partida."
               : "Cuando todos estén listos, empieza la siguiente ronda."}
           </p>
 
-          {/* Who is ready / who is missing */}
-          <div className="flex flex-wrap justify-center gap-2 mb-3">
+          {/* Quién está listo / quién falta */}
+          <div className="mb-3 flex flex-wrap justify-center gap-2">
             {readyPlayers.map((player) => (
               <span
                 key={player.id}
-                className="inline-flex items-center gap-1.5 text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full"
+                className="inline-flex animate-pop-in items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700"
               >
                 <span aria-hidden>✓</span>
                 {player.name}
@@ -333,22 +345,22 @@ export default function ValidationScreen({
             {waitingPlayers.map((player) => (
               <span
                 key={player.id}
-                className="inline-flex items-center gap-1.5 text-sm bg-gray-50 text-gray-500 border border-gray-200 px-3 py-1 rounded-full"
+                className="inline-flex items-center gap-1.5 rounded-full border border-violet-100 bg-violet-50 px-3 py-1 text-sm font-medium text-violet-400"
               >
-                <span className="w-3 h-3 rounded-full border-2 border-gray-300 animate-pulse" />
+                <span className="h-3 w-3 animate-pulse rounded-full border-2 border-violet-300" />
                 {player.name}
               </span>
             ))}
           </div>
 
-          <p className="text-sm text-gray-500 mb-4">
-            Listos: <span className="font-semibold">{readyPlayers.length}</span> /{" "}
+          <p className="mb-4 text-sm font-medium text-violet-500">
+            Listos: <span className="font-bold text-violet-800">{readyPlayers.length}</span> /{" "}
             {players.length}
             {waitingPlayers.length > 0 && (
               <>
                 {" · "}
                 Faltan:{" "}
-                <span className="font-medium">
+                <span className="font-semibold">
                   {waitingPlayers.map((player) => player.name).join(", ")}
                 </span>
               </>
@@ -356,44 +368,46 @@ export default function ValidationScreen({
           </p>
 
           {readyError && (
-            <p className="text-sm text-red-600 mb-3">{readyError}</p>
+            <p className="mb-3 animate-pop-in rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+              {readyError}
+            </p>
           )}
 
           {allReady ? (
-            <div className="flex items-center justify-center gap-2 py-3.5 text-emerald-700 font-semibold">
-              <span className="w-5 h-5 rounded-full border-2 border-emerald-300 border-t-emerald-600 animate-spin" />
+            <div className="flex items-center justify-center gap-2 py-3.5 font-display font-bold text-emerald-600">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-300 border-t-emerald-600" />
               ¡Todos listos! Comenzando…
             </div>
           ) : (
             <button
               onClick={handleToggleReady}
               disabled={toggling}
-              className={`w-full py-3.5 px-4 font-semibold rounded-xl transition disabled:opacity-50 shadow-lg ${
+              className={`tuti-cta w-full px-4 py-3.5 text-lg ${
                 iAmReady
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-none hover:bg-emerald-100"
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
-              }`}
+                  ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300"
+                  : "tuti-sheen bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-600/30"
+              } disabled:opacity-50`}
             >
               {toggling
                 ? "Guardando…"
                 : iAmReady
                   ? "Estoy listo ✓ (tocar para cancelar)"
-                  : "¡Listo!"}
+                  : "¡Listo! 👍"}
             </button>
           )}
 
-          {/* Host safety valve: continue even if someone is away. */}
+          {/* Válvula de escape del host: continuar aunque falte alguien. */}
           {isHost && onForceAdvance && !allReady && (
             <button
               onClick={handleForce}
               disabled={forcing}
-              className="mt-3 text-xs text-gray-400 hover:text-gray-600 underline transition disabled:opacity-50"
+              className="mt-3 text-xs font-medium text-violet-400 underline transition hover:text-violet-600 disabled:opacity-50"
             >
               {forcing ? "Continuando…" : "Continuar sin esperar (host)"}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }

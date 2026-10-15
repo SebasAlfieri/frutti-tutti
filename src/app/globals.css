@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #2a0a4a;
+  --foreground: #f8f5ff;
 }
 
 @theme inline {
@@ -10,17 +10,325 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fredoka);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ─── Animaciones ──────────────────────────────────────────────────────────
+   Todo el movimiento se define con CSS puro (sin librerías extra) para
+   mantener el bundle liviano. Los tokens `--animate-*` generan las clases
+   `animate-*` de Tailwind. Los keyframes viven a nivel raíz para que existan
+   siempre en la hoja de estilos. */
+@theme {
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-blob: blob 20s ease-in-out infinite;
+  --animate-pop-in: pop-in 0.35s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-out: fade-out 0.5s ease-in both;
+  --animate-wiggle: wiggle 1.6s ease-in-out infinite;
+  --animate-bounce-in: bounce-in 0.75s cubic-bezier(0.22, 1.3, 0.36, 1) both;
+  --animate-burst: burst 0.8s cubic-bezier(0.22, 1.3, 0.36, 1) both;
+  --animate-toast-in: toast-in 0.35s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+  --animate-toast-out: toast-out 0.3s ease-in both;
+  --animate-ring: ring 1.8s ease-out infinite;
+  --animate-pulse-soft: pulse-soft 1.7s ease-in-out infinite;
+  --animate-timer-alarm: timer-alarm 0.9s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -22px, 0) rotate(6deg);
+  }
+}
+
+@keyframes blob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(6%, -8%, 0) scale(1.12);
+  }
+  66% {
+    transform: translate3d(-6%, 6%, 0) scale(0.94);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(-3.5deg);
+  }
+  50% {
+    transform: rotate(3.5deg);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) translateY(24px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15) translateY(0);
+  }
+  80% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-8deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.08) rotate(2deg);
+  }
+  72% {
+    transform: scale(0.97) rotate(-1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -16px, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes toast-out {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -12px, 0) scale(0.96);
+  }
+}
+
+@keyframes ring {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scale(1.015);
+  }
+}
+
+@keyframes timer-alarm {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.09);
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -12vh, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift, 0px), 112vh, 0) rotate(720deg);
+    opacity: 0.85;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: #f0abfc;
+  color: #3b0764;
+}
+
+/* Tailwind v4 dejó de aplicar `cursor: pointer` a los botones, así que en
+   desktop todos los controles clickeables vuelven a invitar al click. Se
+   define en la capa `base` para que utilidades como `disabled:cursor-not-allowed`
+   sigan pudiendo sobrescribirlo. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="submit"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+/* Utilidades de diseño reutilizables. Se definen en la capa `components`
+   para que las utilidades de Tailwind puedan seguir sobrescribiéndolas. */
+@layer components {
+  .tuti-card {
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow:
+      0 24px 60px -24px rgba(24, 4, 48, 0.65),
+      0 2px 0 0 rgba(255, 255, 255, 0.6) inset;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(6px);
+  }
+
+  .tuti-input {
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 118, 190, 0.35);
+    background: #ffffff;
+    padding: 0.75rem 1rem;
+    color: #1f1235;
+    outline: none;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .tuti-input::placeholder {
+    color: #a89bc0;
+  }
+
+  .tuti-input:focus {
+    border-color: #d946ef;
+    box-shadow: 0 0 0 4px rgba(217, 70, 239, 0.2);
+  }
+
+  .tuti-cta {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    font-weight: 700;
+    transition:
+      transform 0.15s ease,
+      filter 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .tuti-cta:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+  }
+
+  .tuti-cta:active:not(:disabled) {
+    transform: translateY(0) scale(0.985);
+  }
+
+  .tuti-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.55) 50%,
+      transparent 70%
+    );
+    background-size: 220% 100%;
+    animation: shine 3.5s linear infinite;
+    pointer-events: none;
+  }
+}
+
+/* Respeta la preferencia de movimiento reducido del sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

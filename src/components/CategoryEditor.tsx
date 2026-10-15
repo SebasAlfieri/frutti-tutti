@@ -100,7 +100,7 @@ export default function CategoryEditor({
       <div className="space-y-2">
         {draft.map((category, index) => (
           <div key={category.id} className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 w-5 text-right">
+            <span className="w-5 text-right text-xs font-semibold text-violet-300">
               {index + 1}
             </span>
             <input
@@ -110,14 +110,14 @@ export default function CategoryEditor({
               placeholder="Nombre de la categoría"
               maxLength={30}
               aria-label={`Nombre de la categoría ${index + 1}`}
-              className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-sm text-gray-900"
+              className="tuti-input min-w-0 flex-1 px-3 py-2 text-sm"
             />
             <button
               type="button"
               onClick={() => handleRemove(category.id)}
               disabled={draft.length <= MIN_CATEGORIES}
               aria-label={`Eliminar categoría ${index + 1}`}
-              className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              className="rounded-lg p-2 text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-30"
             >
               <svg
                 className="w-4 h-4"
@@ -141,14 +141,14 @@ export default function CategoryEditor({
         type="button"
         onClick={handleAdd}
         disabled={draft.length >= MAX_CATEGORIES}
-        className="text-sm text-blue-600 hover:text-blue-800 font-medium transition disabled:opacity-40"
+        className="text-sm font-semibold text-fuchsia-600 transition hover:text-fuchsia-800 disabled:opacity-40"
       >
         + Agregar categoría
       </button>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="block text-xs text-gray-500 mb-1">
+          <span className="mb-1 block text-xs font-medium text-violet-500">
             Puntos por acierto único
           </span>
           <input
@@ -160,11 +160,11 @@ export default function CategoryEditor({
               setSaved(false);
               setPoints(Math.max(1, Number(e.target.value) || 1));
             }}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-sm text-gray-900"
+            className="tuti-input px-3 py-2 text-sm"
           />
         </label>
         <label className="block">
-          <span className="block text-xs text-gray-500 mb-1">
+          <span className="mb-1 block text-xs font-medium text-violet-500">
             Rondas para terminar
           </span>
           <input
@@ -176,18 +176,18 @@ export default function CategoryEditor({
               setSaved(false);
               setRounds(Math.max(1, Number(e.target.value) || 1));
             }}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition text-sm text-gray-900"
+            className="tuti-input px-3 py-2 text-sm"
           />
         </label>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm font-medium text-rose-600">{error}</p>}
 
       <button
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="w-full py-2.5 px-4 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl transition disabled:opacity-50"
+        className="tuti-cta w-full bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm text-white shadow-lg shadow-violet-600/25 disabled:opacity-50"
       >
         {saving ? "Guardando..." : saved ? "Guardado ✓" : "Guardar configuración"}
       </button>

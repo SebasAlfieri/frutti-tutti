@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Room, RoomSettings, Player } from "@/types";
 import { MIN_PLAYERS_TO_START } from "@/lib/constants";
 import CategoryEditor from "@/components/CategoryEditor";
+import { usePlayerActivity } from "@/hooks/use-player-activity";
 
 type LobbyProps = {
   room: Room;
@@ -15,6 +16,23 @@ type LobbyProps = {
   onKickPlayer: (playerId: string) => Promise<void>;
   onSaveSettings: (settings: RoomSettings) => Promise<void>;
 };
+
+const AVATAR_GRADIENTS = [
+  "from-fuchsia-500 to-pink-500",
+  "from-violet-500 to-indigo-500",
+  "from-emerald-500 to-teal-500",
+  "from-amber-500 to-orange-500",
+  "from-sky-500 to-blue-500",
+  "from-rose-500 to-red-500"
+];
+
+function gradientFor(id: string): string {
+  let hash = 0;
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) >>> 0;
+  }
+  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
+}
 
 export default function Lobby({
   room,
@@ -32,6 +50,8 @@ export default function Lobby({
   const [closing, setClosing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+
+  const { displayPlayers, toasts, dismissToast } = usePlayerActivity(players);
 
   const shareableLink =
     typeof window === "undefined"
@@ -88,7 +108,9 @@ export default function Lobby({
     }
   };
 
-  const sortedPlayers = [...players].sort((a, b) => {
+  const sortedPlayers = [...displayPlayers].sort((a, b) => {
+    if (a.leaving && !b.leaving) return 1;
+    if (b.leaving && !a.leaving) return -1;
     if (a.id === room.hostId) return -1;
     if (b.id === room.hostId) return 1;
     return a.joinedAt - b.joinedAt;
@@ -97,27 +119,58 @@ export default function Lobby({
   const canStart = players.length >= MIN_PLAYERS_TO_START;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
+    <main className="relative flex min-h-screen items-center justify-center px-4 py-8">
+      {/* Avisos de entrada / salida */}
+      <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-2 px-4">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-white shadow-xl backdrop-blur ${
+              toast.type === "join"
+                ? "border-emerald-300/60 bg-emerald-500/90"
+                : "border-rose-300/60 bg-rose-500/90"
+            } ${toast.closing ? "animate-toast-out" : "animate-toast-in"}`}
+          >
+            <span>{toast.type === "join" ? "👋" : "🚪"}</span>
+            <span>
+              {toast.name} {toast.type === "join" ? "se unió" : "salió"}
+            </span>
+            <button
+              type="button"
+              onClick={() => dismissToast(toast.id)}
+              aria-label="Cerrar aviso"
+              className="ml-1 text-white/70 transition hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+
       <div className="w-full max-w-lg">
-        {/* Room code card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-4 text-center">
-          <p className="text-sm text-gray-500 mb-2">Código de la sala</p>
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-4xl font-mono font-bold tracking-[0.2em] text-gray-900">
+        {/* Código de la sala */}
+        <div
+          className="tuti-card animate-fade-up mb-4 p-6 text-center"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-400">
+            Código de la sala
+          </p>
+          <div className="mt-2 flex items-center justify-center gap-3">
+            <span className="bg-gradient-to-r from-fuchsia-600 to-violet-600 bg-clip-text font-mono text-4xl font-black tracking-[0.2em] text-transparent">
               {room.code}
             </span>
             <button
               onClick={() => copyText(room.code, "code")}
-              className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-500 hover:text-gray-700"
+              className="rounded-xl bg-violet-100 p-2 text-violet-600 transition hover:scale-105 hover:bg-violet-200 active:scale-95"
               title="Copiar código"
               aria-label="Copiar código"
             >
               {copied === "code" ? (
-                <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               )}
@@ -125,70 +178,97 @@ export default function Lobby({
           </div>
           <button
             onClick={() => copyText(shareableLink, "link")}
-            className="mt-3 text-sm text-blue-600 hover:text-blue-800 transition"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-4 py-1.5 text-sm font-semibold text-violet-600 transition hover:scale-[1.03] hover:bg-violet-100 active:scale-95"
           >
-            {copied === "link" ? "¡Enlace copiado!" : "Copiar enlace de invitación"}
+            {copied === "link" ? "¡Enlace copiado! ✓" : "🔗 Copiar enlace de invitación"}
           </button>
         </div>
 
-        {/* Players list */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Jugadores ({players.length})
+        {/* Jugadores */}
+        <div
+          className="tuti-card animate-fade-up mb-4 p-6"
+          style={{ animationDelay: "100ms" }}
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-display text-lg font-bold text-violet-900">
+              Jugadores <span className="text-fuchsia-600">({players.length})</span>
             </h2>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs font-medium text-violet-400">
               Mínimo {MIN_PLAYERS_TO_START} para empezar
             </span>
           </div>
+
           <ul className="space-y-2">
             {sortedPlayers.map((player) => (
               <li
                 key={player.id}
-                className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-gray-50"
+                className={`flex items-center justify-between rounded-2xl bg-violet-50/80 py-2.5 pl-2.5 pr-3 ring-1 ring-violet-100 ${
+                  player.leaving ? "animate-fade-out" : "animate-pop-in"
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      player.connected ? "bg-green-500" : "bg-gray-300"
-                    }`}
-                  />
-                  <span className="font-medium text-gray-800">
-                    {player.name}
-                  </span>
-                  {player.id === room.hostId && (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                      Host
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="relative shrink-0">
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${gradientFor(
+                        player.id
+                      )} font-display text-lg font-bold text-white shadow-md`}
+                    >
+                      {player.name.trim().charAt(0).toUpperCase() || "?"}
                     </span>
-                  )}
-                  {player.id === playerId && (
-                    <span className="text-xs text-gray-400">(tú)</span>
-                  )}
+                    <span
+                      className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${
+                        player.connected ? "bg-emerald-500" : "bg-gray-300"
+                      }`}
+                    />
+                  </span>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="truncate font-semibold text-violet-950">
+                      {player.name}
+                    </span>
+                    {player.id === room.hostId && (
+                      <span className="rounded-full bg-gradient-to-r from-amber-400 to-orange-400 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
+                        👑 Host
+                      </span>
+                    )}
+                    {player.id === playerId && (
+                      <span className="text-xs font-medium text-violet-400">(tú)</span>
+                    )}
+                  </div>
                 </div>
-                {isHost && player.id !== room.hostId && (
+                {isHost && player.id !== room.hostId && !player.leaving && (
                   <button
                     onClick={() => handleKickPlayer(player.id)}
                     disabled={kicking === player.id}
-                    className="text-xs text-red-500 hover:text-red-700 font-medium transition disabled:opacity-50"
+                    className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold text-rose-500 transition hover:bg-rose-100 hover:text-rose-700 disabled:opacity-50"
                   >
                     {kicking === player.id ? "..." : "Expulsar"}
                   </button>
                 )}
               </li>
             ))}
+
+            {players.length < MIN_PLAYERS_TO_START && (
+              <li className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-violet-200 py-3 text-sm font-medium text-violet-400">
+                <span className="animate-pulse-soft">⏳</span>
+                Esperando a más jugadores…
+              </li>
+            )}
           </ul>
         </div>
 
-        {/* Game settings */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-4">
+        {/* Categorías / configuración */}
+        <div
+          className="tuti-card animate-fade-up mb-4 p-6"
+          style={{ animationDelay: "180ms" }}
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="font-display text-lg font-bold text-violet-900">
               Categorías
             </h2>
             {isHost && (
               <button
                 onClick={() => setShowSettings((value) => !value)}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium transition"
+                className="rounded-full bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-700 transition hover:bg-violet-200"
               >
                 {showSettings ? "Cerrar" : "Personalizar"}
               </button>
@@ -206,17 +286,17 @@ export default function Lobby({
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap gap-2 mt-3">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {room.settings.categories.map((category) => (
                   <span
                     key={category.id}
-                    className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full"
+                    className="rounded-full bg-gradient-to-r from-violet-100 to-fuchsia-100 px-3 py-1 text-sm font-medium text-violet-700"
                   >
                     {category.label}
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-gray-400 mt-3">
+              <p className="mt-3 text-xs font-medium text-violet-400">
                 {room.settings.pointsPerCorrect} pts por acierto único ·{" "}
                 {room.settings.roundsToWin} rondas
               </p>
@@ -224,36 +304,43 @@ export default function Lobby({
           )}
         </div>
 
-        {/* Actions */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
+        {/* Acciones */}
+        <div
+          className="tuti-card animate-fade-up p-6"
+          style={{ animationDelay: "260ms" }}
+        >
           {actionError && (
-            <p className="text-sm text-red-600 mb-3 text-center">{actionError}</p>
+            <p className="mb-3 animate-pop-in rounded-xl bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-700">
+              {actionError}
+            </p>
           )}
           {isHost ? (
             <div className="space-y-3">
               <button
                 onClick={handleStart}
                 disabled={!canStart || starting}
-                className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-600/20"
+                className={`tuti-cta w-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-4 text-lg text-white shadow-lg shadow-emerald-600/30 disabled:opacity-50 ${
+                  canStart && !starting ? "animate-pulse-soft" : ""
+                }`}
               >
                 {starting
                   ? "Iniciando..."
                   : canStart
-                    ? "Comenzar partida"
+                    ? "🚀 Comenzar partida"
                     : `Se necesitan ${MIN_PLAYERS_TO_START} jugadores`}
               </button>
               <button
                 onClick={handleCloseRoom}
                 disabled={closing}
-                className="w-full py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition disabled:opacity-50"
+                className="w-full rounded-2xl bg-rose-50 px-4 py-3 font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
               >
                 {closing ? "Cerrando..." : "Cerrar sala"}
               </button>
             </div>
           ) : (
-            <div className="text-center py-4">
-              <div className="inline-flex items-center gap-2 text-gray-500">
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <div className="py-3 text-center">
+              <div className="inline-flex items-center gap-2 font-medium text-violet-500">
+                <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -263,6 +350,6 @@ export default function Lobby({
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }

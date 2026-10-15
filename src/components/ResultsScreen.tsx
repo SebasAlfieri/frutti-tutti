@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { PlayerScore } from "@/types";
+import Confetti from "@/components/Confetti";
 
 type ResultsScreenProps = {
   standings: PlayerScore[];
@@ -11,13 +12,20 @@ type ResultsScreenProps = {
   onPlayAgain: () => Promise<void>;
 };
 
+const MEDALS = ["🥇", "🥈", "🥉"];
+
+const RANK_STYLES = [
+  "bg-gradient-to-r from-amber-100 to-yellow-50 ring-1 ring-amber-200",
+  "bg-gradient-to-r from-slate-100 to-zinc-50 ring-1 ring-slate-200",
+  "bg-gradient-to-r from-orange-100 to-amber-50 ring-1 ring-orange-200"
+];
+
 export default function ResultsScreen({
   standings,
   winner,
   isHost,
   onPlayAgain
 }: ResultsScreenProps) {
-  const medals = ["🥇", "🥈", "🥉"];
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,97 +40,108 @@ export default function ResultsScreen({
     }
   };
 
+  const sorted = standings.slice().sort((a, b) => b.total - a.total);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-blue-600 to-indigo-700 flex flex-col items-center justify-center p-4 pb-8">
-      <div className="w-full max-w-lg">
-        {/* Winner celebration */}
-        {winner && (
-          <div className="text-center mb-6 animate-bounce">
-            <div className="text-6xl mb-3">🏆</div>
-            <h1 className="text-4xl font-bold text-white mb-1">
+    <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      {winner && (
+        <div className="pointer-events-none fixed inset-0 -z-0">
+          <Confetti count={90} />
+        </div>
+      )}
+
+      <div className="relative w-full max-w-lg">
+        {/* Celebración */}
+        {winner ? (
+          <div className="mb-6 text-center">
+            <div className="mb-2 animate-float text-6xl drop-shadow-[0_8px_24px_rgba(251,191,36,0.6)]">
+              🏆
+            </div>
+            <p className="font-display text-sm font-semibold uppercase tracking-[0.3em] text-amber-200">
+              Ganador
+            </p>
+            <h1 className="bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text font-display text-4xl font-black text-transparent drop-shadow-[0_4px_20px_rgba(251,191,36,0.5)] sm:text-5xl">
               ¡{winner.name}!
             </h1>
-            <p className="text-blue-200 text-lg">Ha ganado la partida</p>
-          </div>
-        )}
-
-        {!winner && standings.length > 0 && (
-          <div className="text-center mb-6">
-            <div className="text-6xl mb-3">🤝</div>
-            <h1 className="text-3xl font-bold text-white mb-1">¡Empate!</h1>
-            <p className="text-blue-200 text-lg">
-              Nadie sacó ventaja esta vez
+            <p className="mt-1 font-medium text-fuchsia-100/90">
+              Se llevó la partida 🎉
             </p>
           </div>
+        ) : (
+          standings.length > 0 && (
+            <div className="mb-6 text-center">
+              <div className="mb-2 animate-float text-6xl">🤝</div>
+              <h1 className="font-display text-4xl font-black text-white">
+                ¡Empate!
+              </h1>
+              <p className="mt-1 font-medium text-fuchsia-100/90">
+                Nadie sacó ventaja esta vez
+              </p>
+            </div>
+          )
         )}
 
-        {/* Standings */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-4">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 text-center">
+        {/* Clasificación final */}
+        <div className="tuti-card animate-fade-up mb-4 p-6">
+          <h2 className="mb-4 text-center font-display text-lg font-black text-violet-900">
             Clasificación final
           </h2>
-          <div className="space-y-3">
-            {standings
-              .slice()
-              .sort((a, b) => b.total - a.total)
-              .map((entry, idx) => (
-                <div
-                  key={entry.playerId}
-                  className={`flex items-center justify-between px-4 py-3 rounded-xl ${
-                    idx === 0
-                      ? "bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200"
-                      : idx === 1
-                        ? "bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200"
-                        : idx === 2
-                          ? "bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200"
-                          : "bg-gray-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl w-8 text-center">
-                      {medals[idx] ?? (
-                        <span className="text-lg font-bold text-gray-400">
-                          {idx + 1}
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-semibold text-gray-800 text-lg">
-                      {entry.name}
-                    </span>
-                  </div>
-                  <span className="font-bold text-xl text-gray-900">
-                    {entry.total}
-                    <span className="text-sm text-gray-400 font-normal ml-1">
-                      pts
-                    </span>
+          <div className="space-y-2.5">
+            {sorted.map((entry, idx) => (
+              <div
+                key={entry.playerId}
+                className={`flex animate-fade-up items-center justify-between rounded-2xl px-4 py-3 ${
+                  RANK_STYLES[idx] ?? "bg-violet-50"
+                }`}
+                style={{ animationDelay: `${idx * 60}ms` }}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-8 text-center text-2xl">
+                    {MEDALS[idx] ?? (
+                      <span className="text-lg font-bold text-violet-300">
+                        {idx + 1}
+                      </span>
+                    )}
+                  </span>
+                  <span className="truncate font-display text-lg font-bold text-violet-900">
+                    {entry.name}
                   </span>
                 </div>
-              ))}
+                <span className="shrink-0 font-display text-xl font-black text-violet-900">
+                  {entry.total}
+                  <span className="ml-1 text-sm font-medium text-violet-400">
+                    pts
+                  </span>
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="bg-white rounded-2xl shadow-2xl p-5 space-y-3">
+        {/* Acciones */}
+        <div className="tuti-card animate-fade-up space-y-3 p-5" style={{ animationDelay: "120ms" }}>
           {error && (
-            <p className="text-sm text-red-600 text-center">{error}</p>
+            <p className="animate-pop-in rounded-xl bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-700">
+              {error}
+            </p>
           )}
           {isHost && (
             <button
               onClick={handlePlayAgain}
               disabled={resetting}
-              className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition disabled:opacity-50 shadow-lg shadow-blue-600/20"
+              className="tuti-cta tuti-sheen w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 px-4 py-3.5 text-white shadow-lg shadow-fuchsia-600/30 disabled:opacity-50"
             >
-              {resetting ? "Reiniciando..." : "Jugar otra vez"}
+              {resetting ? "Reiniciando..." : "🔁 Jugar otra vez"}
             </button>
           )}
           <Link
             href="/"
-            className="block w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition text-center"
+            className="block w-full rounded-2xl bg-violet-100 px-4 py-3 text-center font-semibold text-violet-700 transition hover:bg-violet-200"
           >
             Volver al inicio
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
