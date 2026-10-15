@@ -18,14 +18,15 @@ navegador y el enlace o código de la sala.
 1. [Funcionalidades](#funcionalidades)
 2. [Puesta en marcha](#puesta-en-marcha)
 3. [Ejecutar en local](#ejecutar-en-local)
-4. [Probar con varios jugadores](#probar-con-varios-jugadores)
-5. [Desplegar en Vercel](#desplegar-en-vercel)
-6. [Arquitectura](#arquitectura)
-7. [Seguridad](#seguridad)
-8. [Consumo de Firebase](#consumo-de-firebase)
-9. [Limpieza de salas antiguas](#limpieza-de-salas-antiguas)
-10. [Gratis vs. pago](#gratis-vs-pago)
-11. [Scripts](#scripts)
+4. [Depuración (logs en la consola)](#depuración-logs-en-la-consola)
+5. [Probar con varios jugadores](#probar-con-varios-jugadores)
+6. [Desplegar en Vercel](#desplegar-en-vercel)
+7. [Arquitectura](#arquitectura)
+8. [Seguridad](#seguridad)
+9. [Consumo de Firebase](#consumo-de-firebase)
+10. [Limpieza de salas antiguas](#limpieza-de-salas-antiguas)
+11. [Gratis vs. pago](#gratis-vs-pago)
+12. [Scripts](#scripts)
 
 ---
 
@@ -139,6 +140,26 @@ yarn lint     # ESLint (incluye Prettier)
 yarn build    # build de producción
 yarn start    # servir el build
 ```
+
+---
+
+## Depuración (logs en la consola)
+
+La app emite logs con prefijo `[tuti:...]` en la consola del navegador
+(F12 → Console) para facilitar el diagnóstico. Los más útiles:
+
+| Prefijo | Qué muestra |
+| --- | --- |
+| `[tuti:firebase]` | Si la configuración está presente o **qué variables faltan**. |
+| `[tuti:auth]` | Ciclo de la sesión anónima (sesión existente / creación / error). |
+| `[tuti:home]` | Crear sala, unirse por código y errores. |
+| `[tuti:room]` | Acciones de sala (crear, unir, iniciar/cerrar ronda, reset, cerrar). |
+| `[tuti:useRoom]` / `[tuti:usePlayers]` | Suscripciones en tiempo real (alta, snapshot, baja). |
+| `[tuti:game]` | Envío de respuestas, cierre de ronda y temporal agotado. |
+
+Si algo “no hace nada”, abrí la consola: ahí vas a ver el paso exacto y el error
+concreto (por ejemplo `auth/operation-not-allowed` si Anonymous Auth está
+deshabilitado, o `permission-denied` si faltan las reglas).
 
 ---
 

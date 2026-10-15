@@ -35,6 +35,7 @@ export async function createRoom(
   hostId: string,
   hostName: string
 ): Promise<{ roomId: string; code: string }> {
+  console.log("[tuti:room] createRoom() → hostId:", hostId, "| nombre:", hostName);
   const db = getDb();
   const roomRef = doc(collection(db, "rooms"));
   const now = Date.now();
@@ -47,31 +48,42 @@ export async function createRoom(
       query(collection(db, "rooms"), where("code", "==", code), limit(1))
     );
     if (existing.empty) break;
+    console.log("[tuti:room] código ocupado, reintentando:", code);
     code = generateRoomCode();
   }
+  console.log("[tuti:room] código elegido:", code);
 
-  await runTransaction(db, async (tx) => {
-    tx.set(roomRef, {
-      code,
-      hostId,
-      status: "lobby" as RoomStatus,
-      settings: DEFAULT_SETTINGS,
-      currentRound: 0,
-      letters: {},
-      roundStartedAt: null,
-      roundEndedAt: null,
-      finishedBy: null,
-      lastActivity: now,
-      createdAt: now
+  try {
+    await runTransaction(db, async (tx) => {
+      tx.set(roomRef, {
+        code,
+        hostId,
+        status: "lobby" as RoomStatus,
+        settings: DEFAULT_SETTINGS,
+        currentRound: 0,
+        letters: {},
+        roundStartedAt: null,
+        roundEndedAt: null,
+        finishedBy: null,
+        lastActivity: now,
+        createdAt: now
+      });
+      tx.set(doc(roomRef, "players", hostId), {
+        name: hostName,
+        connected: true,
+        joinedAt: now,
+        lastSeen: now
+      });
     });
-    tx.set(doc(roomRef, "players", hostId), {
-      name: hostName,
-      connected: true,
-      joinedAt: now,
-      lastSeen: now
-    });
-  });
+  } catch (error) {
+    console.error(
+      "[tuti:room] createRoom() falló (¿reglas de Firestore publicadas?):",
+      error
+    );
+    throw error;
+  }
 
+  console.log("[tuti:room] createRoom() ok → roomId:", roomRef.id);
   return { roomId: roomRef.id, code };
 }
 
@@ -84,6 +96,7 @@ export async function joinRoom(
   playerId: string,
   playerName: string
 ): Promise<void> {
+  console.log("[tuti:room] joinRoom() → roomId:", roomId, "| playerId:", playerId);
   const db = getDb();
   const now = Date.now();
   await setDoc(doc(db, "rooms", roomId, "players", playerId), {
@@ -92,17 +105,21 @@ export async function joinRoom(
     joinedAt: now,
     lastSeen: now
   });
+  console.log("[tuti:room] joinRoom() ok");
 }
 
 /**
  * Resolves a short code into a room id. Returns null if the code is unknown.
  */
 export async function getRoomIdByCode(code: string): Promise<string | null> {
+  console.log("[tuti:room] getRoomIdByCode() → code:", code);
   const db = getDb();
   const snap = await getDocs(
     query(collection(db, "rooms"), where("code", "==", code), limit(1))
   );
-  return snap.empty ? null : snap.docs[0].id;
+  const roomId = snap.empty ? null : snap.docs[0].id;
+  console.log("[tuti:room] getRoomIdByCode() →", roomId ?? "sin resultados");
+  return roomId;
 }
 
 /**
@@ -112,6 +129,7 @@ export async function updateRoomStatus(
   roomId: string,
   status: RoomStatus
 ): Promise<void> {
+  console.log("[tuti:room] updateRoomStatus() →", status);
   const db = getDb();
   await updateDoc(doc(db, "rooms", roomId), { status });
 }
@@ -124,6 +142,13 @@ export async function saveRoomSettings(
   roomId: string,
   settings: RoomSettings
 ): Promise<void> {
+  console.log(
+    "[tuti:room] saveRoomSettings() →",
+    settings.categories.length,
+    "categorías |",
+    settings.roundsToWin,
+    "rondas"
+  );
   const db = getDb();
   await updateDoc(doc(db, "rooms", roomId), {
     settings,
@@ -140,6 +165,7 @@ export async function startRound(
   letter: string,
   round: number
 ): Promise<void> {
+  console.log("[tuti:room] startRound() → ronda:", round, "| letra:", letter);
   const db = getDb();
   await updateDoc(doc(db, "rooms", roomId), {
     [`letters.${round}`]: letter,
@@ -158,6 +184,7 @@ export async function finishRound(
   roomId: string,
   finishedBy: FinishedBy
 ): Promise<void> {
+  console.log("[tuti:room] finishRound() → ronda cerrada por:", finishedBy.playerName);
   const db = getDb();
   await updateDoc(doc(db, "rooms", roomId), {
     roundEndedAt: Date.now(),
@@ -170,6 +197,7 @@ export async function finishRound(
  * Resets the room back to lobby state for a new game.
  */
 export async function resetRoom(roomId: string): Promise<void> {
+  console.log("[tuti:room] resetRoom() → volviendo al lobby");
   const db = getDb();
   await updateDoc(doc(db, "rooms", roomId), {
     status: "lobby",
@@ -194,6 +222,7 @@ export async function closeRoom(
   roomId: string,
   currentRound: number
 ): Promise<void> {
+  console.log("[tuti:room] closeRoom() → roomId:", roomId, "| rondas:", currentRound);
   const db = getDb();
   const roomRef = doc(db, "rooms", roomId);
 
@@ -215,6 +244,7 @@ export async function closeRoom(
 
   await deleteInBatches(db, refs);
   await deleteDoc(roomRef);
+  console.log("[tuti:room] closeRoom() ok → borrados:", refs.length, "docs + sala");
 }
 
 /**
@@ -225,6 +255,7 @@ export async function clearRoundResponses(
   roomId: string,
   upToRound: number
 ): Promise<void> {
+  console.log("[tuti:room] clearRoundResponses() → hasta ronda:", upToRound);
   const db = getDb();
   const refs: ReturnType<typeof doc>[] = [];
 
@@ -244,6 +275,7 @@ export async function clearRoundResponses(
  * Deletes a player's document from the room's players subcollection.
  */
 export async function removePlayer(roomId: string, playerId: string): Promise<void> {
+  console.log("[tuti:room] removePlayer() → playerId:", playerId);
   const db = getDb();
   await deleteDoc(doc(db, "rooms", roomId, "players", playerId));
 }

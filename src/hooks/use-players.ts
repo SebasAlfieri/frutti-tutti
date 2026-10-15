@@ -23,6 +23,7 @@ export function usePlayers(roomId: string): UsePlayersResult {
   useEffect(() => {
     if (!roomId) return;
 
+    console.log("[tuti:usePlayers] suscribiendo a rooms/" + roomId + "/players");
     const playersQuery = query(
       collection(getDb(), "rooms", roomId, "players"),
       orderBy("joinedAt", "asc")
@@ -35,18 +36,22 @@ export function usePlayers(roomId: string): UsePlayersResult {
           const data = d.data() as Omit<Player, "id">;
           return { id: d.id, ...data };
         });
+        console.log("[tuti:usePlayers] snapshot ok →", list.length, "jugador(es)");
         setPlayers(list);
         setError(null);
         setLoading(false);
       },
       (err) => {
-        console.error("[usePlayers] Subscription error:", err);
+        console.error("[tuti:usePlayers] Subscription error:", err);
         setError("No se pudieron cargar los jugadores");
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      console.log("[tuti:usePlayers] desuscribiendo");
+      unsubscribe();
+    };
   }, [roomId]);
 
   return { players, loading, error };

@@ -13,6 +13,12 @@ export async function submitResponses(
   playerId: string,
   answers: Answers
 ): Promise<void> {
+  console.log(
+    "[tuti:round] submitResponses() → ronda:",
+    round,
+    "| playerId:",
+    playerId
+  );
   const db = getDb();
   const responseRef = doc(
     db,
@@ -27,6 +33,7 @@ export async function submitResponses(
     answers,
     submittedAt: Date.now()
   });
+  console.log("[tuti:round] submitResponses() ok");
 }
 
 /**
@@ -38,6 +45,7 @@ export function subscribeToResponses(
   round: number,
   callback: (responses: Record<string, RoundResponse>) => void
 ): () => void {
+  console.log("[tuti:round] subscribeToResponses() → ronda:", round);
   const db = getDb();
   const responsesRef = collection(
     db,
@@ -55,10 +63,17 @@ export function subscribeToResponses(
         const data = d.data() as Omit<RoundResponse, "playerId">;
         responses[d.id] = { playerId: d.id, ...data };
       }
+      console.log(
+        "[tuti:round] respuestas ronda",
+        round,
+        "→",
+        snapshot.size,
+        "jugador(es)"
+      );
       callback(responses);
     },
     (err) => {
-      console.error("[subscribeToResponses] Subscription error:", err);
+      console.error("[tuti:round] subscribeToResponses() error:", err);
     }
   );
 }

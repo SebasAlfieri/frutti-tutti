@@ -12,6 +12,7 @@ export async function setPlayerConnected(
   playerId: string,
   connected: boolean
 ): Promise<void> {
+  console.log("[tuti:player] setPlayerConnected() →", playerId, "=", connected);
   const db = getDb();
   await updateDoc(doc(db, "rooms", roomId, "players", playerId), {
     connected,

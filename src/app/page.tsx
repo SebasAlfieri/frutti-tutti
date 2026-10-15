@@ -32,8 +32,12 @@ export default function Home() {
 
   const startSession = async (): Promise<User | null> => {
     try {
-      return await ensureSignedIn();
-    } catch {
+      console.log("[tuti:home] iniciando sesión…");
+      const user = await ensureSignedIn();
+      console.log("[tuti:home] sesión lista → uid:", user.uid);
+      return user;
+    } catch (error) {
+      console.error("[tuti:home] no se pudo iniciar sesión:", error);
       setError(AUTH_ERROR_MESSAGE);
       setLoading(false);
       return null;
@@ -49,6 +53,7 @@ export default function Home() {
 
     setLoading(true);
     setError(null);
+    console.log("[tuti:home] crear sala →", name);
 
     const user = await startSession();
     if (!user) return;
@@ -56,8 +61,10 @@ export default function Home() {
     try {
       localStorage.setItem(PLAYER_NAME_KEY, name);
       const { roomId } = await createRoom(user.uid, name);
+      console.log("[tuti:home] sala creada, navegando a /room/" + roomId);
       router.push(`/room/${roomId}`);
-    } catch {
+    } catch (error) {
+      console.error("[tuti:home] falló createRoom():", error);
       setError("No se pudo crear la sala. Revisá tu conexión e intentá de nuevo.");
       setLoading(false);
     }
@@ -76,6 +83,7 @@ export default function Home() {
 
     setLoading(true);
     setError(null);
+    console.log("[tuti:home] unirse a sala →", name, "| code:", roomCode.trim());
 
     const user = await startSession();
     if (!user) return;
@@ -88,8 +96,10 @@ export default function Home() {
         return;
       }
       localStorage.setItem(PLAYER_NAME_KEY, name);
+      console.log("[tuti:home] sala encontrada, navegando a /room/" + roomId);
       router.push(`/room/${roomId}`);
-    } catch {
+    } catch (error) {
+      console.error("[tuti:home] falló getRoomIdByCode():", error);
       setError("No se pudo unir a la sala. Revisá tu conexión e intentá de nuevo.");
       setLoading(false);
     }

@@ -23,26 +23,32 @@ export function useRoom(roomId: string): UseRoomResult {
   useEffect(() => {
     if (!roomId) return;
 
+    console.log("[tuti:useRoom] suscribiendo a rooms/" + roomId);
     const unsubscribe = onSnapshot(
       doc(getDb(), "rooms", roomId),
       (snapshot) => {
         if (snapshot.exists()) {
+          console.log("[tuti:useRoom] snapshot ok → status:", snapshot.data().status);
           setRoom({ id: snapshot.id, ...snapshot.data() } as Room);
           setError(null);
         } else {
+          console.warn("[tuti:useRoom] la sala no existe:", roomId);
           setRoom(null);
           setError("La sala no existe o fue cerrada");
         }
         setLoading(false);
       },
       (err) => {
-        console.error("[useRoom] Subscription error:", err);
+        console.error("[tuti:useRoom] Subscription error:", err);
         setError("No se pudo cargar la sala");
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      console.log("[tuti:useRoom] desuscribiendo de rooms/" + roomId);
+      unsubscribe();
+    };
   }, [roomId]);
 
   return { room, loading, error };

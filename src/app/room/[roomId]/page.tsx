@@ -53,11 +53,16 @@ function RoomPageContent() {
   // ─── Anonymous sign-in ────────────────────────────────────────────────────
   useEffect(() => {
     let active = true;
+    console.log("[tuti:room] iniciando sesión…");
     ensureSignedIn()
       .then((user) => {
-        if (active) setUserId(user.uid);
+        if (active) {
+          console.log("[tuti:room] sesión lista → uid:", user.uid);
+          setUserId(user.uid);
+        }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("[tuti:room] no se pudo iniciar sesión:", error);
         if (active) {
           setAuthError(
             "No se pudo iniciar la sesión. Verificá que la autenticación anónima esté habilitada en Firebase."
@@ -89,9 +94,11 @@ function RoomPageContent() {
       setJoining(true);
       setJoinError(null);
       try {
+        console.log("[tuti:room] join() → roomId:", roomId, "| nombre:", name.trim());
         await joinRoom(roomId, userId, name.trim());
         localStorage.setItem(PLAYER_NAME_KEY, name.trim());
-      } catch {
+      } catch (error) {
+        console.error("[tuti:room] join() falló:", error);
         setJoinError("No se pudo entrar a la sala. Intentá de nuevo.");
         joinAttemptedRef.current = false;
       } finally {
@@ -126,9 +133,11 @@ function RoomPageContent() {
 
     void (async () => {
       try {
+        console.log("[tuti:room] auto-join con nombre guardado:", storedName.trim());
         await joinRoom(roomId, userId, storedName.trim());
         localStorage.setItem(PLAYER_NAME_KEY, storedName.trim());
-      } catch {
+      } catch (error) {
+        console.error("[tuti:room] auto-join falló:", error);
         joinAttemptedRef.current = false;
         setAutoJoinFailed(true);
       }
@@ -149,10 +158,12 @@ function RoomPageContent() {
 
     void (async () => {
       try {
+        console.log("[tuti:room] volcando borrador local de la ronda", roundToFlush);
         await submitResponses(roomId, roundToFlush, userId, draft);
         clearDraft(roomId, roundToFlush);
-      } catch {
+      } catch (error) {
         // Keep the draft so the player can retry / it survives a reload.
+        console.error("[tuti:room] no se pudo volcar el borrador local:", error);
       }
     })();
   }, [userId, roundFinished, roundToFlush, roomId]);
@@ -206,26 +217,31 @@ function RoomPageContent() {
 
   // ─── Host actions ─────────────────────────────────────────────────────────
   const handleStartGame = useCallback(async () => {
+    console.log("[tuti:room] host inicia la partida");
     await startRound(roomId, pickRandomLetter(), 1);
   }, [roomId]);
 
   const handleNextRound = useCallback(async () => {
     if (!room) return;
+    console.log("[tuti:room] host avanza a la ronda", room.currentRound + 1);
     await startRound(roomId, pickRandomLetter(), room.currentRound + 1);
   }, [room, roomId]);
 
   const handleFinishGame = useCallback(async () => {
+    console.log("[tuti:room] host finaliza la partida");
     await updateRoomStatus(roomId, "finished");
   }, [roomId]);
 
   const handlePlayAgain = useCallback(async () => {
     if (!room) return;
+    console.log("[tuti:room] host reinicia la partida");
     setAllRoundsResponses({});
     await clearRoundResponses(roomId, room.currentRound);
     await resetRoom(roomId);
   }, [room, roomId]);
 
   const handleCloseRoom = useCallback(async () => {
+    console.log("[tuti:room] host cierra la sala");
     await closeRoom(roomId, room?.currentRound ?? 0);
     router.push("/");
   }, [roomId, room?.currentRound, router]);

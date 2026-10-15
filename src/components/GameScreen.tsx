@@ -47,10 +47,18 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
     setSubmitted(true);
     setSubmitting(true);
     try {
+      console.log(
+        "[tuti:game] enviando respuestas de la ronda",
+        room.currentRound,
+        "→",
+        playerId
+      );
       await submitResponses(room.id, room.currentRound, playerId, answers);
       clearDraft(room.id, room.currentRound);
-    } catch {
+      console.log("[tuti:game] respuestas enviadas");
+    } catch (error) {
       // Allow retry on failure.
+      console.error("[tuti:game] no se pudieron enviar las respuestas:", error);
       submittedRef.current = false;
       setSubmitted(false);
     } finally {
@@ -65,9 +73,14 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
   // Invoked from the countdown (timeout) and from the ¡Tuti Frutti! button.
   const endRound = useCallback(
     async (playerName: string) => {
-      await doSubmit();
-      if (!room.finishedBy) {
-        await finishRound(room.id, { playerId, playerName, at: Date.now() });
+      console.log("[tuti:game] cerrando ronda como", playerName);
+      try {
+        await doSubmit();
+        if (!room.finishedBy) {
+          await finishRound(room.id, { playerId, playerName, at: Date.now() });
+        }
+      } catch (error) {
+        console.error("[tuti:game] no se pudo cerrar la ronda:", error);
       }
     },
     [doSubmit, room.id, room.finishedBy, playerId]
@@ -86,6 +99,7 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
       const remaining = computeTimeLeft(room.roundStartedAt);
       setTimeLeft(remaining);
       if (remaining <= 0 && !submittedRef.current) {
+        console.log("[tuti:game] tiempo agotado, cerrando la ronda");
         void endRoundRef.current(ownName);
       }
     }, 1000);
