@@ -75,6 +75,11 @@ navegador y el enlace o código de la sala.
   revelado de letra, explosión de confeti al gritar «¡Tutti Frutti!», avisos
   cuando alguien entra o sale de la sala, y micro-interacciones en botones,
   progreso y clasificación.
+- **Enter pasa al siguiente campo** en todos los formularios (incluido el teclado
+  del celular, con la tecla «siguiente»/«ir»). Ver `useEnterToNext`.
+- **Campos de respuesta llamativos**: cada categoría es una tarjeta con su propio
+  color, un emoji temático, la letra de la ronda como marca de agua y un borde de
+  gradiente que se anima al enfocar.
 
 **Diseño y animaciones**
 
@@ -82,7 +87,8 @@ Toda la estética se resuelve con **CSS puro** (Tailwind v4 + `@keyframes` propi
 en `src/app/globals.css`), sin agregar librerías de animación. Los tokens
 `--animate-*` exponen las clases `animate-*`, y hay utilidades de diseño
 reutilizables en la capa `components` (`.tuti-card`, `.tuti-input`, `.tuti-cta`,
-`.tuti-sheen`). La tipografía de títulos usa **Fredoka** vía `next/font`.
+`.tuti-sheen`, `.tuti-word*`). La tipografía de títulos usa **Fredoka** vía
+`next/font`.
 
 Piezas visuales compartidas:
 
@@ -94,6 +100,9 @@ Piezas visuales compartidas:
 - `Confetti.tsx`: lluvia de confeti reutilizable.
 - `hooks/use-player-activity.ts`: detecta altas/bajas para animarlas y mostrar
   avisos, reutilizando la lista del listener existente (sin lecturas extra).
+- `hooks/use-enter-to-next.ts` + `lib/focus-next-field.ts`: navegación con Enter
+  entre campos visibles.
+- `lib/game/category-theme.ts`: acentos de color y emoji por categoría.
 
 > Todas las animaciones respetan `prefers-reduced-motion`: si el sistema pide
 > movimiento reducido, se desactivan y la intro de ronda se omite.
@@ -258,11 +267,14 @@ src/
     use-players.ts           # Suscripción a jugadores
     use-presence.ts          # Heartbeat de presencia (solo lobby)
     use-player-activity.ts   # Altas/bajas de jugadores (animación + avisos)
+    use-enter-to-next.ts     # Enter pasa al siguiente campo
   lib/
     auth.ts                  # Sesión anónima (ensureSignedIn)
     firebase.ts              # Inicialización de la app y Firestore
     constants.ts             # Categorías y ajustes por defecto, límites
+    focus-next-field.ts      # Helper de navegación entre campos
     game/scoring.ts          # Lógica pura de puntuación/validación
+    game/category-theme.ts   # Colores y emoji por categoría
     repositories/
       room.ts                # Operaciones sobre salas
       player.ts              # Presencia de jugadores

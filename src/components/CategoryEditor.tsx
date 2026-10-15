@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Category, RoomSettings } from "@/types";
+import { useEnterToNext } from "@/hooks/use-enter-to-next";
 
 type CategoryEditorProps = {
   categories: Category[];
@@ -34,6 +35,7 @@ export default function CategoryEditor({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const handleEnterToNext = useEnterToNext();
 
   const handleAdd = () => {
     if (draft.length >= MAX_CATEGORIES) return;
@@ -96,7 +98,7 @@ export default function CategoryEditor({
   };
 
   return (
-    <div className="space-y-4">
+    <div data-enter-scope className="space-y-4">
       <div className="space-y-2">
         {draft.map((category, index) => (
           <div key={category.id} className="flex items-center gap-2">
@@ -107,6 +109,9 @@ export default function CategoryEditor({
               type="text"
               value={category.label}
               onChange={(e) => handleChange(category.id, "label", e.target.value)}
+              onKeyDown={handleEnterToNext}
+              enterKeyHint="next"
+              autoComplete="off"
               placeholder="Nombre de la categoría"
               maxLength={30}
               aria-label={`Nombre de la categoría ${index + 1}`}
@@ -160,6 +165,8 @@ export default function CategoryEditor({
               setSaved(false);
               setPoints(Math.max(1, Number(e.target.value) || 1));
             }}
+            onKeyDown={handleEnterToNext}
+            enterKeyHint="next"
             className="tuti-input px-3 py-2 text-sm"
           />
         </label>
@@ -176,6 +183,8 @@ export default function CategoryEditor({
               setSaved(false);
               setRounds(Math.max(1, Number(e.target.value) || 1));
             }}
+            onKeyDown={handleEnterToNext}
+            enterKeyHint="go"
             className="tuti-input px-3 py-2 text-sm"
           />
         </label>

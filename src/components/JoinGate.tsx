@@ -64,6 +64,8 @@ export default function JoinGate({
             placeholder="Ingresá tu nombre"
             maxLength={20}
             autoFocus
+            autoComplete="off"
+            enterKeyHint="go"
             className="tuti-input"
           />
         </label>

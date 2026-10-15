@@ -5,8 +5,10 @@ import type { Answers, Player, Room } from "@/types";
 import { ROUND_DURATION_SECONDS } from "@/lib/constants";
 import { clearDraft, readDraft, saveDraft } from "@/lib/game/draft";
 import { getRoundLetter } from "@/lib/game/scoring";
+import { accentFor, iconForCategory } from "@/lib/game/category-theme";
 import { finishRound } from "@/lib/repositories/room";
 import { submitResponses } from "@/lib/repositories/round";
+import { useEnterToNext } from "@/hooks/use-enter-to-next";
 import RoundIntro from "@/components/RoundIntro";
 
 type GameScreenProps = {
@@ -27,6 +29,7 @@ function computeTimeLeft(startedAt: number | null): number {
 
 export default function GameScreen({ room, players, playerId }: GameScreenProps) {
   const letter = getRoundLetter(room.letters, room.currentRound);
+  const handleEnterToNext = useEnterToNext();
 
   // The component is remounted per round by the parent (keyed), so draft and
   // timer can be initialised once without an effect.
@@ -270,34 +273,75 @@ export default function GameScreen({ room, players, playerId }: GameScreenProps)
       </div>
 
       {/* Categorías */}
-      <div className="w-full max-w-lg flex-1 space-y-3">
+      <div data-enter-scope className="w-full max-w-lg flex-1 space-y-3">
         {room.settings.categories.map((category, index) => {
           const value = answers[category.id] ?? "";
           const filled = value.trim().length > 0;
+          const accent = accentFor(index);
+          const inputId = `answer-${category.id}`;
+          const isLast = index === room.settings.categories.length - 1;
           return (
             <div
               key={category.id}
-              className="tuti-card animate-fade-up p-4"
+              className="animate-fade-up"
               style={{ animationDelay: `${index * 45}ms` }}
             >
-              <label className="mb-2 flex items-center justify-between text-sm font-semibold text-violet-800">
-                <span>{category.label}</span>
+              <div
+                className="tuti-word"
+                style={
+                  {
+                    "--tuti-accent-1": accent.a,
+                    "--tuti-accent-2": accent.b
+                  } as React.CSSProperties
+                }
+              >
                 {filled && (
-                  <span className="flex h-5 w-5 animate-pop-in items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">
+                  <span className="absolute -right-1.5 -top-1.5 z-10 flex h-7 w-7 animate-pop-in items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white shadow-lg ring-2 ring-white">
                     ✓
                   </span>
                 )}
-              </label>
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => handleChange(category.id, e.target.value)}
-                placeholder={category.placeholder || `Empieza con ${letter}`}
-                disabled={submitted || isRoundFinished}
-                className="tuti-input disabled:bg-violet-50 disabled:text-violet-300"
-                autoCapitalize="off"
-                autoCorrect="off"
-              />
+                <div className="tuti-word__panel">
+                  <span
+                    aria-hidden
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl shadow-md"
+                    style={{
+                      backgroundImage: `linear-gradient(135deg, ${accent.a}, ${accent.b})`
+                    }}
+                  >
+                    {iconForCategory(category.label)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <label
+                      htmlFor={inputId}
+                      className="block text-[0.68rem] font-bold uppercase tracking-wider text-violet-400"
+                    >
+                      {category.label}
+                    </label>
+                    <div className="relative">
+                      <input
+                        id={inputId}
+                        type="text"
+                        value={value}
+                        onChange={(e) => handleChange(category.id, e.target.value)}
+                        onKeyDown={handleEnterToNext}
+                        placeholder={category.placeholder || `Empieza con ${letter}`}
+                        disabled={submitted || isRoundFinished}
+                        className="tuti-word__input peer pr-9"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        autoComplete="off"
+                        enterKeyHint={isLast ? "go" : "next"}
+                      />
+                      <span
+                        aria-hidden
+                        className="tuti-word__ghost peer-placeholder-shown:opacity-100"
+                      >
+                        {letter}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           );
         })}

@@ -6,6 +6,7 @@ import type { User } from "firebase/auth";
 import { ensureSignedIn } from "@/lib/auth";
 import { createRoom, getRoomIdByCode } from "@/lib/repositories/room";
 import { ROOM_CODE_LENGTH } from "@/lib/constants";
+import { useEnterToNext } from "@/hooks/use-enter-to-next";
 
 const PLAYER_NAME_KEY = "tuti-player-name";
 
@@ -18,6 +19,7 @@ export default function Home() {
   const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const handleEnterToNext = useEnterToNext();
 
   // Restore the last used name without a controlled input, to avoid a
   // hydration mismatch on a statically prerendered page.
@@ -143,6 +145,9 @@ export default function Home() {
             placeholder="Ingresá tu nombre"
             maxLength={20}
             className="tuti-input"
+            onKeyDown={handleEnterToNext}
+            enterKeyHint="next"
+            autoComplete="off"
           />
 
           <button
@@ -183,6 +188,9 @@ export default function Home() {
             placeholder="Ej: ABC123"
             maxLength={ROOM_CODE_LENGTH}
             className="tuti-input text-center font-mono text-2xl tracking-[0.3em] uppercase"
+            onKeyDown={handleEnterToNext}
+            enterKeyHint="go"
+            autoComplete="off"
           />
           <button
             onClick={handleJoin}
